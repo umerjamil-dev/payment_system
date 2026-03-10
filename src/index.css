@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary: #CA1D2A;
+    --color-secondary: #253F80;
+    --color-background: #F3F4F6;
+    /* light gray for dashboard back */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+    @apply bg-background text-neutral-900 antialiased;
+}
