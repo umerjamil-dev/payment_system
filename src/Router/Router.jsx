@@ -6,11 +6,13 @@ import ClientList from '../Pages/Clients/ClientList'
 import ClientDetails from '../Pages/Clients/ClientDetails'
 import InvoiceList from '../Pages/Invoices/InvoiceList'
 import CreateInvoice from '../Pages/Invoices/CreateInvoice'
+import ClientPaymentView from '../Pages/Payments/ClientPaymentView'
 
 const Router = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path='/pay/:invoiceId' element={<ClientPaymentView />} />
         <Route element={<MainLayout />}>
           <Route path='/' element={<Home />} />
           <Route path='/clients' element={<ClientList />} />

@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { ToastContainer } from '../UI/Toast';
 
 export const MainLayout = () => {
     return (
@@ -15,6 +16,7 @@ export const MainLayout = () => {
                     </div>
                 </main>
             </div>
+            <ToastContainer />
         </div>
     );
 };

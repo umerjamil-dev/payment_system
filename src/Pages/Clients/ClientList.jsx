@@ -1,26 +1,44 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, MoreVertical, Eye, Edit2, Trash2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../Components/UI/Card';
+import { Plus, Search, Filter, Eye, Edit2, Trash2 } from 'lucide-react';
+import { Card, CardHeader, CardContent } from '../../Components/UI/Card';
 import { Button } from '../../Components/UI/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../Components/UI/Table';
 import { Badge } from '../../Components/UI/Badge';
+import { useCRM } from '../../Context/CRMContext';
+import { ClientModal } from '../../Components/Clients/ClientModal';
+import { useNavigate } from 'react-router-dom';
 
 const ClientList = () => {
+    const { clients, addClient, updateClient, deleteClient } = useCRM();
     const [searchTerm, setSearchTerm] = useState('');
-
-    const clients = [
-        { id: 1, name: 'John Doe', email: 'john@example.com', company: 'Acme Corp', status: 'Active', phone: '+1 234 567 890' },
-        { id: 2, name: 'Sarah Wilson', email: 'sarah@globaltech.com', company: 'Global Tech', status: 'Active', phone: '+1 987 654 321' },
-        { id: 3, name: 'Michael Brown', email: 'm.brown@nexus.com', company: 'Nexus Ltd', status: 'Inactive', phone: '+1 555 123 456' },
-        { id: 4, name: 'Emily Davis', email: 'emily@brightstar.io', company: 'Bright Star', status: 'Active', phone: '+1 444 987 654' },
-        { id: 5, name: 'David Miller', email: 'david@skynet.com', company: 'Sky Net', status: 'Active', phone: '+1 777 333 222' },
-    ];
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingClient, setEditingClient] = useState(null);
+    const navigate = useNavigate();
 
     const filteredClients = clients.filter(client =>
         client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleSaveClient = (data) => {
+        if (editingClient) {
+            updateClient(editingClient.id, data);
+        } else {
+            addClient(data);
+        }
+        setIsModalOpen(false);
+    };
+
+    const handleEdit = (client) => {
+        setEditingClient(client);
+        setIsModalOpen(true);
+    };
+
+    const handleAddNew = () => {
+        setEditingClient(null);
+        setIsModalOpen(true);
+    };
 
     return (
         <div className="space-y-6">
@@ -29,7 +47,7 @@ const ClientList = () => {
                     <h2 className="text-2xl font-bold text-gray-900">Clients Management</h2>
                     <p className="text-gray-500">View and manage your client database and history.</p>
                 </div>
-                <Button className="flex items-center gap-2">
+                <Button onClick={handleAddNew} className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
                     Add New Client
                 </Button>
@@ -84,13 +102,13 @@ const ClientList = () => {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-secondary">
+                                            <Button onClick={() => navigate(`/clients/${client.id}`)} variant="ghost" size="icon" className="text-gray-400 hover:text-secondary">
                                                 <Eye className="w-4 h-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-blue-600">
+                                            <Button onClick={() => handleEdit(client)} variant="ghost" size="icon" className="text-gray-400 hover:text-blue-600">
                                                 <Edit2 className="w-4 h-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-primary">
+                                            <Button onClick={() => deleteClient(client.id)} variant="ghost" size="icon" className="text-gray-400 hover:text-primary">
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
@@ -101,6 +119,13 @@ const ClientList = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            <ClientModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveClient}
+                client={editingClient}
+            />
         </div>
     );
 };

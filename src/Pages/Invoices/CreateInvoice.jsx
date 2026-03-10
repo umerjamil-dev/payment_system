@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, Trash2, Save, Send } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Plus, Trash2, Send } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../Components/UI/Card';
 import { Button } from '../../Components/UI/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../Components/UI/Table';
+import { useCRM } from '../../Context/CRMContext';
 
 const CreateInvoice = () => {
+    const { clients, addInvoice } = useCRM();
+    const navigate = useNavigate();
+    const [selectedClientId, setSelectedClientId] = useState('');
     const [items, setItems] = useState([{ id: 1, description: '', quantity: 1, price: 0 }]);
 
     const addItem = () => {
@@ -28,6 +32,29 @@ const CreateInvoice = () => {
     const tax = subtotal * 0.1;
     const total = subtotal + tax;
 
+    const handleSend = () => {
+        if (!selectedClientId) {
+            alert('Please select a client');
+            return;
+        }
+        const client = clients.find(c => c.id === selectedClientId);
+        const newInvoice = addInvoice({
+            clientId: selectedClientId,
+            clientName: client.name,
+            amount: total,
+            items: items.map(({ description, quantity, price }) => ({ description, quantity, price }))
+        });
+
+        if (newInvoice) {
+            const paymentLink = `${window.location.host}/pay/${newInvoice.id}`;
+            navigator.clipboard.writeText(paymentLink);
+            // In a real app we'd use toast here, use context toast if available
+            navigate('/invoices');
+        }
+    };
+
+
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -36,8 +63,7 @@ const CreateInvoice = () => {
                     Back to Invoices
                 </Link>
                 <div className="flex gap-3">
-                    <Button variant="outline">Save as Draft</Button>
-                    <Button variant="secondary" className="flex items-center gap-2">
+                    <Button onClick={handleSend} variant="secondary" className="flex items-center gap-2">
                         <Send className="w-4 h-4" />
                         Send Invoice
                     </Button>
@@ -54,33 +80,22 @@ const CreateInvoice = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Select Client</label>
-                                    <select className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
-                                        <option>Select a client...</option>
-                                        <option>Acme Corp</option>
-                                        <option>Global Tech</option>
-                                        <option>Nexus Ltd</option>
+                                    <select
+                                        value={selectedClientId}
+                                        onChange={(e) => setSelectedClientId(e.target.value)}
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                    >
+                                        <option value="">Select a client...</option>
+                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.company})</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Invoice Number</label>
                                     <input
                                         type="text"
-                                        defaultValue="INV-009"
-                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Issue Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Due Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                        readOnly
+                                        placeholder="Auto-generated"
+                                        className="w-full p-2.5 bg-gray-100 border border-gray-200 rounded-lg text-sm outline-none cursor-not-allowed"
                                     />
                                 </div>
                             </div>
@@ -171,18 +186,6 @@ const CreateInvoice = () => {
                                 <span className="text-base font-bold text-gray-900">Total Amount</span>
                                 <span className="text-xl font-bold text-primary">${total.toFixed(2)}</span>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Notes & Terms</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <textarea
-                                placeholder="Additional notes or payment terms..."
-                                className="w-full h-32 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
-                            ></textarea>
                         </CardContent>
                     </Card>
                 </div>

@@ -1,26 +1,28 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Download, ExternalLink } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../Components/UI/Card';
+import { Plus, Search, Filter, Download, CheckCircle, Copy } from 'lucide-react';
+
+import { Card, CardHeader, CardContent } from '../../Components/UI/Card';
 import { Button } from '../../Components/UI/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../Components/UI/Table';
 import { Badge } from '../../Components/UI/Badge';
+import { useCRM } from '../../Context/CRMContext';
+import { useNavigate } from 'react-router-dom';
 
 const InvoiceList = () => {
+    const { invoices, updateInvoiceStatus } = useCRM();
     const [searchTerm, setSearchTerm] = useState('');
-
-    const invoices = [
-        { id: 'INV-001', client: 'Acme Corp', amount: '$2,500.00', date: 'Oct 24, 2023', status: 'Paid', due: 'Nov 24, 2023' },
-        { id: 'INV-002', client: 'Global Tech', amount: '$1,200.00', date: 'Oct 23, 2023', status: 'Pending', due: 'Nov 23, 2023' },
-        { id: 'INV-003', client: 'Nexus Ltd', amount: '$4,350.00', date: 'Oct 22, 2023', status: 'Overdue', due: 'Oct 29, 2023' },
-        { id: 'INV-004', client: 'Bright Star', amount: '$850.00', date: 'Oct 21, 2023', status: 'Paid', due: 'Nov 21, 2023' },
-        { id: 'INV-005', client: 'Sky Net', amount: '$1,800.00', date: 'Oct 20, 2023', status: 'Pending', due: 'Nov 20, 2023' },
-        { id: 'INV-006', client: 'Acme Corp', amount: '$3,100.00', date: 'Oct 19, 2023', status: 'Paid', due: 'Nov 19, 2023' },
-    ];
+    const navigate = useNavigate();
 
     const filteredInvoices = invoices.filter(inv =>
         inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.client.toLowerCase().includes(searchTerm.toLowerCase())
+        inv.clientName.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const stats = {
+        collected: invoices.filter(i => i.status === 'Paid').reduce((a, b) => a + b.amount, 0),
+        outstanding: invoices.filter(i => i.status === 'Pending').reduce((a, b) => a + b.amount, 0),
+        overdue: invoices.filter(i => i.status === 'Overdue').reduce((a, b) => a + b.amount, 0),
+    };
 
     return (
         <div className="space-y-6">
@@ -29,7 +31,7 @@ const InvoiceList = () => {
                     <h2 className="text-2xl font-bold text-gray-900">Invoices</h2>
                     <p className="text-gray-500">Track billing history and payment statuses.</p>
                 </div>
-                <Button className="flex items-center gap-2">
+                <Button onClick={() => navigate('/invoices/new')} className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
                     Create Invoice
                 </Button>
@@ -39,19 +41,19 @@ const InvoiceList = () => {
                 <Card className="bg-emerald-50 border-emerald-100">
                     <CardContent className="p-4">
                         <p className="text-sm text-emerald-600 font-medium">Total Collected</p>
-                        <h4 className="text-xl font-bold text-emerald-900">$6,450.00</h4>
+                        <h4 className="text-xl font-bold text-emerald-900">${stats.collected.toLocaleString()}</h4>
                     </CardContent>
                 </Card>
                 <Card className="bg-amber-50 border-amber-100">
                     <CardContent className="p-4">
                         <p className="text-sm text-amber-600 font-medium">Outstanding</p>
-                        <h4 className="text-xl font-bold text-amber-900">$3,000.00</h4>
+                        <h4 className="text-xl font-bold text-amber-900">${stats.outstanding.toLocaleString()}</h4>
                     </CardContent>
                 </Card>
                 <Card className="bg-red-50 border-red-100">
                     <CardContent className="p-4">
                         <p className="text-sm text-red-600 font-medium">Overdue</p>
-                        <h4 className="text-xl font-bold text-red-900">$4,350.00</h4>
+                        <h4 className="text-xl font-bold text-red-900">${stats.overdue.toLocaleString()}</h4>
                     </CardContent>
                 </Card>
             </div>
@@ -74,10 +76,6 @@ const InvoiceList = () => {
                                 <Filter className="w-4 h-4" />
                                 Filter
                             </Button>
-                            <Button variant="outline" size="sm" className="flex items-center gap-2">
-                                <Download className="w-4 h-4" />
-                                Export
-                            </Button>
                         </div>
                     </div>
                 </CardHeader>
@@ -87,8 +85,7 @@ const InvoiceList = () => {
                             <TableRow>
                                 <TableHead>Invoice #</TableHead>
                                 <TableHead>Client</TableHead>
-                                <TableHead>Issue Date</TableHead>
-                                <TableHead>Due Date</TableHead>
+                                <TableHead>Date</TableHead>
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -98,10 +95,9 @@ const InvoiceList = () => {
                             {filteredInvoices.map((inv) => (
                                 <TableRow key={inv.id}>
                                     <TableCell className="font-semibold text-secondary">{inv.id}</TableCell>
-                                    <TableCell>{inv.client}</TableCell>
+                                    <TableCell>{inv.clientName}</TableCell>
                                     <TableCell className="text-gray-500">{inv.date}</TableCell>
-                                    <TableCell className="text-gray-500">{inv.due}</TableCell>
-                                    <TableCell className="font-medium">{inv.amount}</TableCell>
+                                    <TableCell className="font-medium">${inv.amount.toLocaleString()}</TableCell>
                                     <TableCell>
                                         <Badge variant={
                                             inv.status === 'Paid' ? 'success' :
@@ -111,10 +107,31 @@ const InvoiceList = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-secondary">
-                                            <ExternalLink className="w-4 h-4" />
-                                        </Button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            {inv.status !== 'Paid' && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 text-indigo-500 hover:bg-indigo-50"
+                                                        title="Copy Payment Link"
+                                                        onClick={() => {
+                                                            const link = `${window.location.host}/pay/${inv.id}`;
+                                                            navigator.clipboard.writeText(link);
+                                                            alert('Payment link copied to clipboard!');
+                                                        }}
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button onClick={() => updateInvoiceStatus(inv.id, 'Paid')} variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50 gap-1 h-8">
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        Mark Paid
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
                                     </TableCell>
+
                                 </TableRow>
                             ))}
                         </TableBody>

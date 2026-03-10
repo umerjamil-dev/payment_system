@@ -1,12 +1,11 @@
 import { Router } from "./Router"
-
-
+import { CRMProvider } from "./Context/CRMContext"
 
 const App = () => {
   return (
-    <>
-    <Router/>
-    </>
+    <CRMProvider>
+      <Router />
+    </CRMProvider>
   )
 }
 export default App

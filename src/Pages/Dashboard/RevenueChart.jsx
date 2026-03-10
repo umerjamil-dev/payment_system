@@ -5,13 +5,8 @@ const data = [
     { name: 'Jan', revenue: 4000 },
     { name: 'Feb', revenue: 3000 },
     { name: 'Mar', revenue: 5000 },
-    { name: 'Apr', revenue: 2780 },
-    { name: 'May', revenue: 6890 },
-    { name: 'Jun', revenue: 8390 },
-    { name: 'Jul', revenue: 9490 },
-];
-
-export const RevenueChart = () => {
+]
+export const RevenueChart = ({ data }) => {
     return (
         <div className="h-[300px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">

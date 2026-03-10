@@ -1,13 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-const data = [
-    { name: 'Paid', value: 45000, color: '#10b981' }, // Emerald
-    { name: 'Pending', value: 15000, color: '#f59e0b' }, // Amber
-    { name: 'Overdue', value: 8000, color: '#CA1D2A' }, // Primary Red
-];
-
-export const InvoiceStatusChart = () => {
+export const InvoiceStatusChart = ({ data }) => {
     return (
         <div className="h-[300px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">

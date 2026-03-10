@@ -5,8 +5,9 @@ import { RevenueChart } from './RevenueChart';
 import { InvoiceStatusChart } from './InvoiceStatusChart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../Components/UI/Table';
 import { Badge } from '../../Components/UI/Badge';
+import { useCRM } from '../../Context/CRMContext';
 
-const StatCard = ({ title, value, icon: Icon, trend, trendValue, colorClass }) => (
+const StatCard = ({ title, value, icon: Icon, trendValue, colorClass }) => (
     <Card>
         <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -14,12 +15,8 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, colorClass }) =
                     <p className="text-sm font-medium text-gray-500">{title}</p>
                     <h3 className="text-2xl font-bold mt-1">{value}</h3>
                     <div className="flex items-center mt-2">
-                        {trend === 'up' ? (
-                            <ArrowUpRight className="w-4 h-4 text-emerald-500 mr-1" />
-                        ) : (
-                            <ArrowDownRight className="w-4 h-4 text-red-500 mr-1" />
-                        )}
-                        <span className={trend === 'up' ? 'text-emerald-600 text-sm font-medium' : 'text-red-600 text-sm font-medium'}>
+                        <ArrowUpRight className="w-4 h-4 text-emerald-500 mr-1" />
+                        <span className="text-emerald-600 text-sm font-medium">
                             {trendValue}
                         </span>
                         <span className="text-gray-400 text-sm ml-1">vs last month</span>
@@ -34,13 +31,10 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, colorClass }) =
 );
 
 const Dashboard = () => {
-    const recentInvoices = [
-        { id: 'INV-001', client: 'Acme Corp', amount: '$2,500.00', date: 'Oct 24, 2023', status: 'Paid' },
-        { id: 'INV-002', client: 'Global Tech', amount: '$1,200.00', date: 'Oct 23, 2023', status: 'Pending' },
-        { id: 'INV-003', client: 'Nexus Ltd', amount: '$4,350.00', date: 'Oct 22, 2023', status: 'Overdue' },
-        { id: 'INV-004', client: 'Bright Star', amount: '$850.00', date: 'Oct 21, 2023', status: 'Paid' },
-        { id: 'INV-005', client: 'Sky Net', amount: '$1,800.00', date: 'Oct 20, 2023', status: 'Pending' },
-    ];
+    const { invoices, getDashboardStats } = useCRM();
+    const stats = getDashboardStats();
+
+    const recentInvoices = invoices.slice(0, 5);
 
     return (
         <div className="space-y-8">
@@ -53,34 +47,30 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title="Total Revenue"
-                    value="$128,430"
+                    value={`$${stats.totalRevenue.toLocaleString()}`}
                     icon={DollarSign}
-                    trend="up"
-                    trendValue="+12.5%"
+                    trendValue="+12%"
                     colorClass="bg-secondary"
                 />
                 <StatCard
-                    title="New Clients"
-                    value="42"
+                    title="Total Clients"
+                    value={stats.totalClients}
                     icon={Users}
-                    trend="up"
-                    trendValue="+18.2%"
+                    trendValue="+18%"
                     colorClass="bg-blue-500"
                 />
                 <StatCard
                     title="Invoices Paid"
-                    value="156"
+                    value={stats.paidInvoicesCount}
                     icon={FileCheck}
-                    trend="up"
-                    trendValue="+5.4%"
+                    trendValue="+5%"
                     colorClass="bg-emerald-500"
                 />
                 <StatCard
-                    title="Overdue Amount"
-                    value="$12,850"
+                    title="Pending Amount"
+                    value={`$${stats.pendingAmount.toLocaleString()}`}
                     icon={AlertCircle}
-                    trend="down"
-                    trendValue="+2.1%"
+                    trendValue="+2%"
                     colorClass="bg-primary"
                 />
             </div>
@@ -92,7 +82,7 @@ const Dashboard = () => {
                         <CardTitle>Revenue Trend</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <RevenueChart />
+                        <RevenueChart data={stats.monthlyRevenue} />
                     </CardContent>
                 </Card>
 
@@ -102,7 +92,7 @@ const Dashboard = () => {
                         <CardTitle>Invoice Status</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <InvoiceStatusChart />
+                        <InvoiceStatusChart data={stats.statusData} />
                     </CardContent>
                 </Card>
             </div>
@@ -127,8 +117,8 @@ const Dashboard = () => {
                         {recentInvoices.map((inv) => (
                             <TableRow key={inv.id}>
                                 <TableCell className="font-semibold text-secondary">{inv.id}</TableCell>
-                                <TableCell>{inv.client}</TableCell>
-                                <TableCell>{inv.amount}</TableCell>
+                                <TableCell>{inv.clientName}</TableCell>
+                                <TableCell>${inv.amount.toLocaleString()}</TableCell>
                                 <TableCell className="text-gray-500">{inv.date}</TableCell>
                                 <TableCell>
                                     <Badge variant={
