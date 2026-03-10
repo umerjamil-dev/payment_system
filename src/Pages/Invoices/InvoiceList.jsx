@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Badge } from '../../Components/UI/Badge';
 import { useCRM } from '../../Context/CRMContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const InvoiceList = () => {
     const { invoices, updateInvoiceStatus } = useCRM();
@@ -79,7 +80,7 @@ const InvoiceList = () => {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -118,10 +119,10 @@ const InvoiceList = () => {
                                                         onClick={() => {
                                                             const link = `${window.location.host}/pay/${inv.id}`;
                                                             navigator.clipboard.writeText(link);
-                                                            alert('Payment link copied to clipboard!');
+                                                            toast.success('Payment link copied to clipboard!');
                                                         }}
                                                     >
-                                                        <Copy className="w-4 h-4" />
+                                                        <Copy className="w-8 h-8" />
                                                     </Button>
                                                     <Button onClick={() => updateInvoiceStatus(inv.id, 'Paid')} variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50 gap-1 h-8">
                                                         <CheckCircle className="w-4 h-4" />

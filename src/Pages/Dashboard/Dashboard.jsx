@@ -103,35 +103,37 @@ const Dashboard = () => {
                     <CardTitle>Recent Invoices</CardTitle>
                     <button className="text-primary text-sm font-semibold hover:underline">View All</button>
                 </CardHeader>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Invoice #</TableHead>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {recentInvoices.map((inv) => (
-                            <TableRow key={inv.id}>
-                                <TableCell className="font-semibold text-secondary">{inv.id}</TableCell>
-                                <TableCell>{inv.clientName}</TableCell>
-                                <TableCell>${inv.amount.toLocaleString()}</TableCell>
-                                <TableCell className="text-gray-500">{inv.date}</TableCell>
-                                <TableCell>
-                                    <Badge variant={
-                                        inv.status === 'Paid' ? 'success' :
-                                            inv.status === 'Pending' ? 'warning' : 'danger'
-                                    }>
-                                        {inv.status}
-                                    </Badge>
-                                </TableCell>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Invoice #</TableHead>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Status</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {recentInvoices.map((inv) => (
+                                <TableRow key={inv.id}>
+                                    <TableCell className="font-semibold text-secondary">{inv.id}</TableCell>
+                                    <TableCell>{inv.clientName}</TableCell>
+                                    <TableCell>${inv.amount.toLocaleString()}</TableCell>
+                                    <TableCell className="text-gray-500">{inv.date}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={
+                                            inv.status === 'Paid' ? 'success' :
+                                                inv.status === 'Pending' ? 'warning' : 'danger'
+                                        }>
+                                            {inv.status}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </Card>
         </div>
     );

@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../Components/UI/Ca
 import { Button } from '../../Components/UI/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../Components/UI/Table';
 import { useCRM } from '../../Context/CRMContext';
+import emailjs from '@emailjs/browser';
 
 const CreateInvoice = () => {
     const { clients, addInvoice } = useCRM();
     const navigate = useNavigate();
     const [selectedClientId, setSelectedClientId] = useState('');
     const [items, setItems] = useState([{ id: 1, description: '', quantity: 1, price: 0 }]);
+    const [isSending, setIsSending] = useState(false);
 
     const addItem = () => {
         setItems([...items, { id: Date.now(), description: '', quantity: 1, price: 0 }]);
@@ -32,11 +34,14 @@ const CreateInvoice = () => {
     const tax = subtotal * 0.1;
     const total = subtotal + tax;
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!selectedClientId) {
             alert('Please select a client');
             return;
         }
+
+        setIsSending(true);
+
         const client = clients.find(c => c.id === selectedClientId);
         const newInvoice = addInvoice({
             clientId: selectedClientId,
@@ -46,14 +51,61 @@ const CreateInvoice = () => {
         });
 
         if (newInvoice) {
-            const paymentLink = `${window.location.host}/pay/${newInvoice.id}`;
+            const paymentLink = `${window.location.protocol}//${window.location.host}/pay/${newInvoice.id}`;
+
+            // Backup: copy to clipboard
             navigator.clipboard.writeText(paymentLink);
-            // In a real app we'd use toast here, use context toast if available
-            navigate('/invoices');
+
+            try {
+                // EmailJS Logic
+                const SERVICE_ID = 'service_x90d9ll';
+                const TEMPLATE_ID = 'template_03sxvjx';
+                const PUBLIC_KEY = 'i3Lg3lkiEAl2lyw1J';
+
+                // Initialize EmailJS explicitly
+                emailjs.init(PUBLIC_KEY);
+
+                if (!client.email) {
+                    throw new Error('Client email is missing in the database');
+                }
+
+                const templateParams = {
+                    to_email: client.email,
+                    email: client.email, // Redundant for dashboard compatibility
+                    to_name: client.name,
+                    invoice_id: newInvoice.id,
+                    total_amount: `$${total.toFixed(2)}`,
+                    payment_link: paymentLink,
+                    reply_to: 'admin@nexus.com'
+                };
+
+                const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
+
+                if (response.status === 200) {
+                    toast.success('Email sent successfully to ' + client.email);
+                } else {
+                    throw new Error('Unexpected response status: ' + response.status);
+                }
+            } catch (error) {
+                console.error('EmailJS Error:', error);
+                toast.error('Email Failed: ' + error.message);
+                const errorMsg = error?.text || error?.message || 'Unknown EmailJS error';
+                toast.error('EmailJS Failed: ' + errorMsg + '\n\nOpening local email app as backup...');
+
+                // Fallback to mailto link
+                const subject = encodeURIComponent(`Invoice ${newInvoice.id} - Nexus CRM`);
+                const body = encodeURIComponent(`Hello ${client.name},\n\nYour invoice ${newInvoice.id} for $${total.toFixed(2)} has been generated.\n\nPlease use the link below to view and complete the payment:\n${paymentLink}`);
+
+                const mailtoLink = `mailto:${client.email}?subject=${subject}&body=${body}`;
+                const link = document.createElement('a');
+                link.href = mailtoLink;
+                link.click();
+            } finally {
+                setIsSending(false);
+                navigate('/invoices');
+            }
         }
     };
-
-
 
     return (
         <div className="space-y-6">
@@ -63,9 +115,18 @@ const CreateInvoice = () => {
                     Back to Invoices
                 </Link>
                 <div className="flex gap-3">
-                    <Button onClick={handleSend} variant="secondary" className="flex items-center gap-2">
-                        <Send className="w-4 h-4" />
-                        Send Invoice
+                    <Button
+                        onClick={handleSend}
+                        disabled={isSending}
+                        variant="secondary"
+                        className="flex items-center gap-2"
+                    >
+                        {isSending ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <Send className="w-4 h-4" />
+                        )}
+                        {isSending ? 'Sending...' : 'Send Invoice'}
                     </Button>
                 </div>
             </div>
@@ -108,7 +169,7 @@ const CreateInvoice = () => {
                                         Add Item
                                     </Button>
                                 </div>
-                                <div className="border rounded-xl overflow-hidden">
+                                <div className="border rounded-xl overflow-x-auto scrollbar-hide">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>

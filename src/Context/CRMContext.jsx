@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 const CRMContext = createContext();
 
@@ -21,8 +22,6 @@ export const CRMProvider = ({ children }) => {
         ];
     });
 
-    const [toasts, setToasts] = useState([]);
-
     useEffect(() => {
         localStorage.setItem('nexus_clients', JSON.stringify(clients));
     }, [clients]);
@@ -32,11 +31,9 @@ export const CRMProvider = ({ children }) => {
     }, [invoices]);
 
     const addToast = (message, type = 'success') => {
-        const id = Date.now();
-        setToasts((prev) => [...prev, { id, message, type }]);
-        setTimeout(() => {
-            setToasts((prev) => prev.filter((t) => t.id !== id));
-        }, 3000);
+        if (type === 'success') toast.success(message);
+        else if (type === 'error') toast.error(message);
+        else toast(message);
     };
 
     const addClient = (client) => {
@@ -146,8 +143,7 @@ export const CRMProvider = ({ children }) => {
             deleteClient,
             addInvoice,
             updateInvoiceStatus,
-            getDashboardStats,
-            toasts
+            getDashboardStats
         }}>
             {children}
         </CRMContext.Provider>
