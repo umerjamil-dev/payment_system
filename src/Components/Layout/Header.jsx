@@ -1,7 +1,10 @@
 import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, LogOut } from 'lucide-react';
+import { useAuth } from '../../Context/AuthContext';
 
 export const Header = () => {
+    const { logout } = useAuth();
+
     return (
         <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-10 w-full">
             <div className="flex-1 flex items-center">
@@ -10,7 +13,7 @@ export const Header = () => {
                     <input
                         type="text"
                         placeholder="Search CRM..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-sans"
                     />
                 </div>
             </div>
@@ -23,14 +26,24 @@ export const Header = () => {
 
                 <div className="h-8 w-[1px] bg-gray-200"></div>
 
-                <div className="flex items-center gap-3 cursor-pointer group">
-                    <div className="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-semibold group-hover:ring-2 group-hover:ring-offset-2 group-hover:ring-secondary transition-all">
-                        AD
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-semibold group-hover:ring-2 group-hover:ring-offset-2 group-hover:ring-secondary transition-all">
+                            AD
+                        </div>
+                        <div className="hidden md:block">
+                            <p className="text-sm font-semibold text-gray-900 leading-tight">Admin User</p>
+                            <p className="text-xs text-gray-500">System Admin</p>
+                        </div>
                     </div>
-                    <div className="hidden md:block">
-                        <p className="text-sm font-semibold text-gray-900 leading-tight">Admin User</p>
-                        <p className="text-xs text-gray-500">System Admin</p>
-                    </div>
+
+                    <button
+                        onClick={logout}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title="Logout"
+                    >
+                        <LogOut className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
         </header>

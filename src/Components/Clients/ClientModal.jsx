@@ -38,7 +38,7 @@ export const ClientModal = ({ isOpen, onClose, onSave, client }) => {
                     </button>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4 text-black">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Full Name</label>
                             <input

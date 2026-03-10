@@ -9,5 +9,51 @@
 }
 
 body {
-    @apply bg-background text-neutral-900 antialiased;
+    @apply bg-background text-white antialiased min-h-screen;
+    margin: 0;
+    padding: 0;
+}
+
+.tech-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-image: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.15) 0%, rgba(2, 6, 23, 1) 100%),
+        url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+.animate-glow {
+    animation: glow-pulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes glow-pulse {
+    from {
+        box-shadow: 0 0 20px -10px var(--primary-glow);
+    }
+
+    to {
+        box-shadow: 0 0 40px -5px var(--primary-glow);
+    }
+}
+
+.input-field {
+    @apply w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all duration-300;
+}
+
+.btn-primary {
+    @apply w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20 hover:shadow-primary/40;
 }
