@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCRM } from '../../Context/CRMContext';
 import { StripeModal } from '../../Components/Payments/StripeModal';
-import { Button } from '../../Components/UI/Button';
-import { Badge } from '../../Components/UI/Badge';
-import { Card } from '../../Components/UI/Card';
-import { BookOpen, Download, CheckCircle2, AlertCircle, ShieldCheck, Mail, Building2, Calendar, FileText, CreditCard } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import toast from 'react-hot-toast';
+import {
+    BookOpen, Download, CheckCircle2, AlertCircle,
+    ShieldCheck, Mail, Building2, Calendar,
+    CreditCard, Lock, ArrowRight
+} from 'lucide-react';
 
 const ClientPaymentView = () => {
     const { invoiceId } = useParams();
     const navigate = useNavigate();
-    const { invoices, clients, updateInvoiceStatus, addToast } = useCRM();
+    const { invoices, clients, brands, gateways, updateInvoiceStatus, addToast } = useCRM();
     const [isStripeOpen, setIsStripeOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [invoice, setInvoice] = useState(null);
@@ -20,284 +19,373 @@ const ClientPaymentView = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            // First check in context
             let foundInvoice = invoices.find(inv =>
                 inv.id.toLowerCase() === invoiceId?.trim().toLowerCase()
             );
-
-            // If not in context, check directly in localStorage (Safety Fallback)
             if (!foundInvoice) {
-                const savedInvoices = localStorage.getItem('nexus_invoices');
-                if (savedInvoices) {
-                    const parsedInvoices = JSON.parse(savedInvoices);
-                    foundInvoice = parsedInvoices.find(inv =>
+                const saved = localStorage.getItem('nexus_invoices');
+                if (saved) {
+                    foundInvoice = JSON.parse(saved).find(inv =>
                         inv.id.toLowerCase() === invoiceId?.trim().toLowerCase()
                     );
                 }
             }
-
             if (foundInvoice) {
                 setInvoice(foundInvoice);
-                const foundClient = clients.find(c => c.id === foundInvoice.clientId);
-                if (foundClient) {
-                    setClient(foundClient);
-                } else {
-                    // Safety check if client isn't matched
-                    const savedClients = localStorage.getItem('nexus_clients');
-                    if (savedClients) {
-                        const parsedClients = JSON.parse(savedClients);
-                        setClient(parsedClients.find(c => c.id === foundInvoice.clientId));
-                    }
+                let foundClient = clients.find(c => c.id === foundInvoice.clientId);
+                if (!foundClient) {
+                    const saved = localStorage.getItem('nexus_clients');
+                    if (saved) foundClient = JSON.parse(saved).find(c => c.id === foundInvoice.clientId);
                 }
+                setClient(foundClient);
             }
             setIsLoading(false);
         }, 300);
-
         return () => clearTimeout(timer);
     }, [invoiceId, invoices, clients]);
 
     const handlePaymentSuccess = (method) => {
         updateInvoiceStatus(invoiceId, 'Paid', method);
-        addToast('Payment successful! Your E-book is now available.', 'success');
+        addToast('Payment successful! Your asset is now available.', 'success');
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#05070a]">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-                <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin z-10" />
-            </div>
-        );
-    }
-
-    if (!invoice) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#05070a]">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-                <Card className="glass-card text-center p-12 max-w-md relative z-10 border-white/10">
-                    <AlertCircle className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
-                    <h2 className="text-2xl font-bold text-white mb-2">Invoice Not Found</h2>
-                    <p className="text-white/50 mb-8">The invoice link you followed might be invalid or expired.</p>
-                    <Button onClick={() => navigate('/login')} variant="secondary">Go to Login</Button>
-                </Card>
-            </div>
-        );
-    }
-
-    const isEbook = invoice.items?.some(item =>
+    const isEbook = invoice?.items?.some(item =>
         item.description.toLowerCase().includes('e-book') ||
         item.description.toLowerCase().includes('ebook')
     );
 
-    return (
-        <div className="min-h-screen relative overflow-hidden flex flex-col bg-[#05070a]">
-            {/* Rich Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-blue-600/5 pointer-events-none" />
+    const brand = brands?.find(b => b.id === invoice?.brandId) || brands?.[0] || { name: 'Nexus', color: '#CA1D2A' };
 
-            {/* Decorative Orbs */}
-            <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-primary/20 rounded-full blur-[120px] animate-pulse pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
+    /* ── Loading ── */
+    if (isLoading) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-red-600 animate-spin" />
+        </div>
+    );
 
-            {/* Header / Brand */}
-            <header className="glass-card !rounded-none border-t-0 border-x-0 border-b border-white/5 h-20 flex items-center px-6 md:px-12 justify-between relative z-10">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-                        N
-                    </div>
-                    <span className="font-bold text-xl tracking-tight text-white uppercase italic">Nexus Billing</span>
+    /* ── Not Found ── */
+    if (!invoice) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+            <div className="bg-white rounded-3xl p-16 text-center max-w-md w-full shadow-2xl border border-gray-100">
+                <div className="w-20 h-20 rounded-full bg-red-50 border-2 border-red-100 flex items-center justify-center mx-auto mb-8">
+                    <AlertCircle className="w-10 h-10 text-red-500" />
                 </div>
-                <Badge
-                    className={cn(
-                        "px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest",
-                        invoice.status === 'Paid' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                    )}
+                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Invoice Not Found</h2>
+                <p className="text-gray-500 font-medium mb-10 leading-relaxed">
+                    The invoice link you followed might be invalid or expired.
+                </p>
+                <button
+                    onClick={() => navigate('/login')}
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-widest uppercase rounded-2xl transition-all shadow-lg shadow-red-600/25 hover:-translate-y-0.5"
                 >
-                    {invoice.status}
-                </Badge>
-            </header>
+                    Go to Dashboard <ArrowRight className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
 
-            <main className="max-w-6xl mx-auto py-12 px-6 md:px-12 grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10 flex-1 w-full">
-                {/* Invoice Details */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    return (
+        <div className="min-h-screen bg-gray-100 py-12 px-4 lg:py-20 flex flex-col items-center">
+
+            {/* ── Main Card ── */}
+            <div className="w-full max-w-5xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100">
+
+                {/* ── Header ── */}
+                <div
+                    className="relative px-8 py-10 md:px-14 md:py-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 overflow-hidden"
+                    style={{ backgroundColor: '#253F80' }}
+                >
+                    {/* Red glow overlay */}
+                    <div
+                        className="absolute right-0 top-0 bottom-0 w-2/3 pointer-events-none opacity-20"
+                        style={{ background: 'radial-gradient(ellipse 80% 150% at 100% 50%, #CA1D2A, transparent)' }}
+                    />
+
+                    {/* Brand */}
+                    <div className="flex items-center gap-5 relative z-10">
+                        <div
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl overflow-hidden flex-shrink-0"
+                            style={{ backgroundColor: brand.color, border: '2px solid rgba(255,255,255,0.15)' }}
+                        >
+                            {brand.logo
+                                ? <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" />
+                                : brand.name.charAt(0)
+                            }
+                        </div>
                         <div>
-                            <div className="flex items-center gap-2 text-primary mb-2">
-                                <FileText className="w-5 h-5" />
-                                <span className="text-sm font-bold uppercase tracking-[0.2em]">Official Invoice</span>
+                            <h2 className="text-2xl font-black text-white tracking-tight uppercase leading-none">
+                                {brand.name}
+                            </h2>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mt-2">
+                                Official Secure Billing Portal
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Doc ID */}
+                    <div className="text-left md:text-right relative z-10">
+                        <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-1">
+                            Document Identifier
+                        </p>
+                        <h1 className="text-5xl font-black text-white tracking-tight leading-none">
+                            #{invoice.id}
+                        </h1>
+                        <div className="flex items-center md:justify-end gap-2 text-white/40 text-xs font-semibold mt-3 uppercase tracking-wider">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(invoice.date).toLocaleDateString(undefined, { dateStyle: 'long' })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Body ── */}
+                <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+
+                    {/* Left: Details */}
+                    <div className="flex-1 p-8 md:p-12 space-y-14">
+
+                        {/* Recipient + Amount */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+                            <div>
+                                <p className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-5">
+                                    <Building2 className="w-3.5 h-3.5 opacity-50" />
+                                    Recipient Information
+                                </p>
+                                <p className="text-2xl font-black text-gray-900 tracking-tight leading-none mb-1">
+                                    {client?.name || 'Valued Client'}
+                                </p>
+                                <p className="text-sm font-medium text-gray-400 mb-5">
+                                    {client?.company || 'Organization'}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs font-semibold text-gray-400">
+                                    <Mail className="w-3.5 h-3.5 opacity-50" />
+                                    {client?.email}
+                                </div>
                             </div>
-                            <h1 className="text-4xl font-black text-white mb-2">Invoice {invoice.id}</h1>
-                            <div className="flex items-center gap-4 text-white/50 text-sm">
-                                <span className="flex items-center gap-1.5">
-                                    <Calendar className="w-4 h-4" />
-                                    Issued: {new Date(invoice.date).toLocaleDateString(undefined, { dateStyle: 'long' })}
+
+                            <div className="md:text-right">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-5">
+                                    Amount to Settle
+                                </p>
+                                <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-2">
+                                    Amount Due
+                                </p>
+                                <p className="text-6xl font-black tracking-tight leading-none" style={{ color: '#CA1D2A' }}>
+                                    <span className="text-2xl font-light opacity-40 mr-1">$</span>
+                                    {invoice.amount?.toLocaleString()}
+                                </p>
+                                <span className={`inline-block mt-4 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ring-1 ${
+                                    invoice.status === 'Paid'
+                                        ? 'bg-emerald-50 text-emerald-600 ring-emerald-200'
+                                        : 'bg-amber-50 text-amber-600 ring-amber-200'
+                                }`}>
+                                    Payment {invoice.status}
                                 </span>
                             </div>
                         </div>
-                        <div className="text-left md:text-right bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-                            <p className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-1">Total Amount Due</p>
-                            <h2 className="text-4xl font-black text-primary animate-glow-soft">${invoice.amount?.toLocaleString()}</h2>
-                        </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Client Info */}
-                        <div className="glass-card p-8 border-white/10 group hover:border-primary/30 transition-all">
-                            <h3 className="text-xs font-bold text-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                <Building2 className="w-4 h-4" /> Billed To
-                            </h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-2xl font-bold text-white leading-tight">{client?.name || 'Valued Client'}</p>
-                                    <p className="text-white/60 font-medium">{client?.company || 'Organization'}</p>
-                                </div>
-                                <div className="pt-4 border-t border-white/5 space-y-2">
-                                    <p className="flex items-center gap-3 text-white/50 text-sm">
-                                        <Mail className="w-4 h-4 text-primary" />
-                                        {client?.email}
-                                    </p>
-                                </div>
+                        {/* Line Items */}
+                        <div>
+                            <div
+                                className="flex items-baseline justify-between pb-4 mb-1"
+                                style={{ borderBottom: '2px solid #253F80' }}
+                            >
+                                <h3 className="text-xl font-black text-gray-900 tracking-tight">Line Items</h3>
+                                <span className="text-xs font-bold text-gray-300 uppercase tracking-widest italic">
+                                    Itemized Statement
+                                </span>
                             </div>
-                        </div>
 
-                        {/* Status Guard */}
-                        <div className="glass-card p-8 border-white/10 flex flex-col justify-center items-center text-center space-y-4">
-                            {invoice.status === 'Paid' ? (
-                                <>
-                                    <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center border border-emerald-500/30">
-                                        <CheckCircle2 className="w-8 h-8" />
-                                    </div>
-                                    <h4 className="text-xl font-bold text-white">Payment Received</h4>
-                                    <p className="text-white/50 text-sm">Verified via {invoice.paymentMethod || 'Secure API'}</p>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center border border-amber-500/30">
-                                        <CreditCard className="w-8 h-8" />
-                                    </div>
-                                    <h4 className="text-xl font-bold text-white">Pending Payment</h4>
-                                    <p className="text-white/50 text-sm">Awaiting secure transaction</p>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Line Items Table */}
-                    <Card className="glass-card overflow-hidden border-white/10 p-0">
-                        <div className="p-8 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                            <h3 className="font-bold text-white">Invoice Summary</h3>
-                            <span className="text-xs text-white/30 uppercase tracking-widest font-bold">Details</span>
-                        </div>
-                        <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="bg-black/20 text-white/30 text-[10px] font-bold uppercase tracking-[0.2em]">
-                                        <th className="text-left py-4 px-8">Description</th>
-                                        <th className="text-center py-4 px-4">Qty</th>
-                                        <th className="text-right py-4 px-4">Price</th>
-                                        <th className="text-right py-4 px-8">Subtotal</th>
+                                    <tr className="text-xs font-bold text-gray-400 uppercase tracking-widest opacity-60">
+                                        <th className="text-left py-5 font-bold">Description</th>
+                                        <th className="text-center py-5 px-4 font-bold">Qty</th>
+                                        <th className="text-right py-5 font-bold">Total</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5">
+                                <tbody className="divide-y divide-gray-50">
                                     {invoice.items?.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-white/5 transition-colors group">
-                                            <td className="py-6 px-8">
-                                                <p className="font-bold text-white group-hover:text-primary transition-colors">{item.description}</p>
+                                        <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="py-6">
+                                                <p className="text-base font-bold text-gray-800 tracking-tight leading-none mb-1.5">
+                                                    {item.description}
+                                                </p>
+                                                <p className="text-xs text-gray-400 font-medium tracking-wide">
+                                                    Standard Unit Billing
+                                                </p>
                                             </td>
-                                            <td className="py-6 px-4 text-center text-white/60 font-medium tracking-wider">{item.quantity}</td>
-                                            <td className="py-6 px-4 text-right text-white/60 font-medium">${item.price.toLocaleString()}</td>
-                                            <td className="py-6 px-8 text-right font-black text-white">${(item.quantity * item.price).toLocaleString()}</td>
+                                            <td className="py-6 px-4 text-center">
+                                                <span className="inline-block bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1.5 rounded-lg tracking-wide">
+                                                    ×{item.quantity}
+                                                </span>
+                                            </td>
+                                            <td className="py-6 text-right">
+                                                <span className="text-lg font-black text-gray-900 tracking-tight">
+                                                    <span className="text-gray-300 font-light mr-0.5">$</span>
+                                                    {(item.quantity * item.price).toLocaleString()}
+                                                </span>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                    </Card>
 
-                    {invoice.status === 'Paid' && isEbook && (
-                        <div className="glass-card p-8 bg-emerald-500/5 border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                                    <BookOpen className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <h4 className="text-xl font-bold text-white leading-tight">Your Asset is Ready!</h4>
-                                    <p className="text-emerald-400/80 font-medium">Download your premium E-book now.</p>
-                                </div>
-                            </div>
-                            <Button className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-10 py-6 h-auto flex items-center justify-center gap-3 font-bold shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.05]">
-                                <Download className="w-5 h-5" />
-                                Download PDF
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Payment Action Bar */}
-                <div className="space-y-6">
-                    <Card className="glass-card p-8 border-white/10 sticky top-12 shadow-2xl">
-                        {invoice.status === 'Paid' ? (
-                            <div className="text-center py-4 space-y-6">
-                                <div className="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30 animate-in zoom-in-50 duration-500">
-                                    <CheckCircle2 className="w-12 h-12" />
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-black text-white">Payment Complete</h3>
-                                    <p className="text-white/40 font-medium mt-2">Thank you for your business!</p>
-                                </div>
-                                <div className="pt-4 border-t border-white/10">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full h-14 rounded-xl border-white/10 hover:bg-white/5 text-white/70 hover:text-white transition-all font-bold tracking-widest uppercase text-xs"
-                                        onClick={() => window.print()}
-                                    >
-                                        Download Receipt
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-8">
-                                <div className="space-y-4">
-                                    <h3 className="text-2xl font-black text-white leading-tight">Secure Checkout</h3>
-                                    <p className="text-white/50 text-sm font-medium leading-relaxed">
-                                        Review your invoice details and complete the transaction via our secure gateway.
-                                    </p>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                                        <span className="text-white/40 text-sm font-bold uppercase tracking-widest">Payable</span>
-                                        <span className="text-2xl font-black text-white">${invoice.amount?.toLocaleString()}</span>
-                                    </div>
-                                    <Button
-                                        className="w-full h-20 text-xl font-black bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 group relative overflow-hidden"
-                                        onClick={() => setIsStripeOpen(true)}
-                                    >
-                                        <span className="relative z-10 flex items-center justify-center gap-3">
-                                            PAY SECURELY <ShieldCheck className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                                        </span>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                    </Button>
-                                    <div className="flex flex-col items-center gap-4 pt-2">
-                                        <div className="flex items-center gap-3 opacity-30 invert brightness-0">
-                                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" className="h-5" />
-                                        </div>
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
-                                            <ShieldCheck className="w-3 h-3" />
-                                            256-BIT ENCRYPTION
-                                        </div>
-                                    </div>
-                                </div>
+                        {/* Brand Note */}
+                        {brand.description && (
+                            <div
+                                className="relative rounded-2xl p-8 overflow-hidden"
+                                style={{
+                                    background: 'linear-gradient(135deg, #F8F9FC, #EEF1F9)',
+                                    border: '1px solid rgba(37,63,128,0.1)'
+                                }}
+                            >
+                                <div
+                                    className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+                                    style={{ backgroundColor: '#253F80' }}
+                                />
+                                <p className="text-xs font-bold uppercase tracking-widest mb-3 opacity-60"
+                                    style={{ color: '#253F80' }}>
+                                    Note from {brand.name}
+                                </p>
+                                <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                                    {brand.description}
+                                </p>
                             </div>
                         )}
-                    </Card>
+                    </div>
 
-                    <p className="text-center text-[10px] text-white/20 font-bold uppercase tracking-[0.2em] px-8 py-4 bg-black/20 rounded-xl border border-white/5">
-                        Payments processed by Nexus Billing. No card data is stored on our servers.
-                    </p>
+                    {/* Right Sidebar */}
+                    <div className="lg:w-80 xl:w-96 p-8 md:p-10 bg-slate-50/30">
+                        <div className="sticky top-10">
+
+                            {invoice.status === 'Paid' ? (
+                                <div className="text-center py-8 space-y-6">
+                                    <div className="w-24 h-24 rounded-full bg-emerald-50 border-2 border-emerald-100 flex items-center justify-center mx-auto shadow-inner">
+                                        <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Settled</h3>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                            Thank you for your business
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-3 pt-4">
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 font-bold text-xs uppercase tracking-widest transition-all hover:border-gray-300"
+                                        >
+                                            <Download className="w-4 h-4 opacity-50" /> Print Statement
+                                        </button>
+                                        {isEbook && (
+                                            <button className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5">
+                                                <BookOpen className="w-4 h-4" /> Access Digital Assets
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-8">
+                                    <div className="pb-7 border-b border-gray-100">
+                                        <h3 className="text-3xl font-black text-gray-900 tracking-tight mb-2">
+                                            Checkout
+                                        </h3>
+                                        <div className="flex items-center gap-2 text-emerald-600">
+                                            <ShieldCheck className="w-4 h-4" />
+                                            <span className="text-xs font-bold uppercase tracking-widest">
+                                                End-to-End Encrypted
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+
+                                        {/* Stripe 1 */}
+                                        {(gateways.stripe1.enabled && (!invoice.allowedGateways || invoice.allowedGateways.stripe1)) && (
+                                            <button
+                                                onClick={() => setIsStripeOpen(true)}
+                                                className="w-full p-5 bg-white hover:bg-gray-50 border border-gray-100 hover:border-red-200 rounded-2xl flex items-center gap-4 group transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                            >
+                                                <div className="w-12 h-12 rounded-xl bg-gray-50 group-hover:bg-red-600 flex items-center justify-center text-gray-400 group-hover:text-white transition-all duration-200 flex-shrink-0">
+                                                    <CreditCard className="w-5 h-5" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-0.5">Primary Card</p>
+                                                    <p className="text-sm font-bold text-gray-700 tracking-tight">{gateways.stripe1.name}</p>
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-red-500" />
+                                            </button>
+                                        )}
+
+                                        {/* Stripe 2 */}
+                                        {(gateways.stripe2.enabled && (!invoice.allowedGateways || invoice.allowedGateways.stripe2)) && (
+                                            <button
+                                                onClick={() => setIsStripeOpen(true)}
+                                                className="w-full p-5 bg-white hover:bg-gray-50 border border-gray-100 hover:border-red-200 rounded-2xl flex items-center gap-4 group transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                            >
+                                                <div className="w-12 h-12 rounded-xl bg-gray-50 group-hover:bg-red-600 flex items-center justify-center text-gray-400 group-hover:text-white transition-all duration-200 flex-shrink-0">
+                                                    <CreditCard className="w-5 h-5" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-0.5">Alt Settlement</p>
+                                                    <p className="text-sm font-bold text-gray-700 tracking-tight">{gateways.stripe2.name}</p>
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-red-500" />
+                                            </button>
+                                        )}
+
+                                        {/* PayPal */}
+                                        {(gateways.paypal.enabled && (!invoice.allowedGateways || invoice.allowedGateways.paypal)) && (
+                                            <button className="w-full p-5 bg-[#003087] hover:bg-[#001f5c] rounded-2xl flex items-center gap-4 group transition-all duration-200 shadow-lg hover:-translate-y-0.5">
+                                                <div className="w-12 h-12 rounded-xl bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-all">
+                                                    <img
+                                                        src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg"
+                                                        alt="PayPal"
+                                                        className="h-5 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                                                    />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-0.5">Express Pay</p>
+                                                    <p className="text-sm font-bold text-white tracking-tight">PayPal Checkout</p>
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-white/60" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* PCI Badge */}
+                                    <div
+                                        className="flex items-center gap-3 p-4 rounded-2xl"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #EEF2FF, #E8EEFF)',
+                                            border: '1px solid rgba(37,63,128,0.1)'
+                                        }}
+                                    >
+                                        <Lock className="w-5 h-5 flex-shrink-0 opacity-40" style={{ color: '#253F80' }} />
+                                        <p className="text-xs font-bold uppercase tracking-wide leading-relaxed"
+                                            style={{ color: '#253F80', opacity: .65 }}>
+                                            PCI‑DSS Compliant<br />
+                                            <span className="opacity-70 normal-case tracking-normal font-medium">Level 1 Infrastructure Verified</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </main>
+            </div>
 
-            <footer className="py-8 text-center text-white/20 text-[10px] font-bold uppercase tracking-[0.4em] relative z-10">
-                &copy; {new Date().getFullYear()} NEXUS CRM SYSTEM • POWERED BY LUXURY TECH
+            {/* Footer */}
+            <footer className="mt-12 w-full max-w-5xl px-4 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30 hover:opacity-80 transition-opacity duration-500">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                    &copy; {new Date().getFullYear()} {brand.name} · Nexus Finance Core
+                </p>
+                <div className="flex items-center gap-8 grayscale brightness-125">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" className="h-4" />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-5" />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-3.5" />
+                </div>
             </footer>
 
             <StripeModal

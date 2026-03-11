@@ -8,6 +8,7 @@ import InvoiceList from '../Pages/Invoices/InvoiceList'
 import CreateInvoice from '../Pages/Invoices/CreateInvoice'
 import ClientPaymentView from '../Pages/Payments/ClientPaymentView'
 import LoginPage from '../Pages/Auth/LoginPage'
+import BrandList from '../Pages/Brands/BrandList'
 import { useAuth } from '../Context/AuthContext'
 
 const PrivateRoute = ({ children }) => {
@@ -30,6 +31,7 @@ const Router = () => {
           <Route index element={<Home />} />
           <Route path='clients' element={<ClientList />} />
           <Route path='clients/:id' element={<ClientDetails />} />
+          <Route path='brands' element={<BrandList />} />
           <Route path='invoices' element={<InvoiceList />} />
           <Route path='invoices/new' element={<CreateInvoice />} />
         </Route>

@@ -18,8 +18,24 @@ export const CRMProvider = ({ children }) => {
     const [invoices, setInvoices] = useState(() => {
         const saved = localStorage.getItem('nexus_invoices');
         return saved ? JSON.parse(saved) : [
-            { id: 'INV-001', clientId: '1', clientName: 'Acme Corp', amount: 2500, status: 'Paid', date: '2023-10-24', dueDate: '2023-11-24' },
+            { id: 'INV-001', clientId: '1', clientName: 'Acme Corp', amount: 2500, status: 'Paid', date: '2023-10-24', dueDate: '2023-11-24', brandId: '1' },
         ];
+    });
+
+    const [brands, setBrands] = useState(() => {
+        const saved = localStorage.getItem('nexus_brands');
+        return saved ? JSON.parse(saved) : [
+            { id: '1', name: 'Nexus Default', logo: null, color: '#CA1D2A', description: 'Your premium solution for business management and automated billing.' }
+        ];
+    });
+
+    const [gateways, setGateways] = useState(() => {
+        const saved = localStorage.getItem('nexus_gateways');
+        return saved ? JSON.parse(saved) : {
+            stripe1: { enabled: true, name: 'Stripe Business', pubKey: '' },
+            stripe2: { enabled: false, name: 'Stripe Personal', pubKey: '' },
+            paypal: { enabled: true, name: 'PayPal Official', email: '' }
+        };
     });
 
     useEffect(() => {
@@ -29,6 +45,14 @@ export const CRMProvider = ({ children }) => {
     useEffect(() => {
         localStorage.setItem('nexus_invoices', JSON.stringify(invoices));
     }, [invoices]);
+
+    useEffect(() => {
+        localStorage.setItem('nexus_brands', JSON.stringify(brands));
+    }, [brands]);
+
+    useEffect(() => {
+        localStorage.setItem('nexus_gateways', JSON.stringify(gateways));
+    }, [gateways]);
 
     const addToast = (message, type = 'success') => {
         if (type === 'success') toast.success(message);
@@ -57,6 +81,31 @@ export const CRMProvider = ({ children }) => {
     const deleteClient = (id) => {
         setClients((prev) => prev.filter(c => c.id !== id));
         addToast('Client deleted', 'error');
+    };
+
+    const addBrand = (brand) => {
+        const newBrand = {
+            ...brand,
+            id: Date.now().toString()
+        };
+        setBrands((prev) => [...prev, newBrand]);
+        addToast('Brand added successfully');
+        return newBrand;
+    };
+
+    const updateBrand = (id, updatedData) => {
+        setBrands((prev) => prev.map(b => b.id === id ? { ...b, ...updatedData } : b));
+        addToast('Brand updated');
+    };
+
+    const deleteBrand = (id) => {
+        setBrands((prev) => prev.filter(b => b.id !== id));
+        addToast('Brand deleted', 'error');
+    };
+
+    const updateGateways = (newGateways) => {
+        setGateways(newGateways);
+        addToast('Payment gateways updated');
     };
 
     const addInvoice = (invoice) => {
@@ -141,6 +190,12 @@ export const CRMProvider = ({ children }) => {
             addClient,
             updateClient,
             deleteClient,
+            brands,
+            addBrand,
+            updateBrand,
+            deleteBrand,
+            gateways,
+            updateGateways,
             addInvoice,
             updateInvoiceStatus,
             getDashboardStats
