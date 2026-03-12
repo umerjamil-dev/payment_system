@@ -14,15 +14,16 @@ const InvoiceList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
-    const filteredInvoices = invoices.filter(inv =>
-        inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.clientName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredInvoices = invoices.filter(inv => {
+        const clientName = inv.clients?.name || 'Unknown Client';
+        return inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            clientName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     const stats = {
-        collected: invoices.filter(i => i.status === 'Paid').reduce((a, b) => a + b.amount, 0),
-        outstanding: invoices.filter(i => i.status === 'Pending').reduce((a, b) => a + b.amount, 0),
-        overdue: invoices.filter(i => i.status === 'Overdue').reduce((a, b) => a + b.amount, 0),
+        collected: invoices.filter(i => i.status === 'Paid').reduce((a, b) => a + Number(b.total || 0), 0),
+        outstanding: invoices.filter(i => i.status === 'Pending').reduce((a, b) => a + Number(b.total || 0), 0),
+        overdue: invoices.filter(i => i.status === 'Overdue').reduce((a, b) => a + Number(b.total || 0), 0),
     };
 
     return (
@@ -95,10 +96,10 @@ const InvoiceList = () => {
                         <TableBody>
                             {filteredInvoices.map((inv) => (
                                 <TableRow key={inv.id}>
-                                    <TableCell className="font-semibold text-secondary">{inv.id}</TableCell>
-                                    <TableCell>{inv.clientName}</TableCell>
-                                    <TableCell className="text-gray-500">{inv.date}</TableCell>
-                                    <TableCell className="font-medium">${inv.amount.toLocaleString()}</TableCell>
+                                    <TableCell className="font-semibold text-secondary">{inv.id.split('-')[0]}</TableCell>
+                                    <TableCell>{inv.clients?.name || 'Unknown Client'}</TableCell>
+                                    <TableCell className="text-gray-500">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
+                                    <TableCell className="font-medium">${Number(inv.total || 0).toLocaleString()}</TableCell>
                                     <TableCell>
                                         <Badge variant={
                                             inv.status === 'Paid' ? 'success' :

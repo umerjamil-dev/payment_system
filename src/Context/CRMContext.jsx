@@ -1,58 +1,53 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { insforge } from '../Lib/insforge';
 
 const CRMContext = createContext();
 
 export const CRMProvider = ({ children }) => {
-    const [clients, setClients] = useState(() => {
-        const saved = localStorage.getItem('nexus_clients');
-        return saved ? JSON.parse(saved) : [
-            {
-                id: '1', name: 'John Doe', email: 'john@example.com', company: 'Acme Corp', status: 'Active', phone: '+1 234 567 890', joinedDate: 'Jan 15, 2023', address: '123 Business Ave, New York, NY 10001', history: [
-                    { id: 1, action: 'Invoice Generated', target: 'INV-001', date: 'Oct 24, 2023 10:30 AM' },
-                ]
-            },
-        ];
+    const [clients, setClients] = useState([]);
+    const [invoices, setInvoices] = useState([]);
+    const [brands, setBrands] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const [gateways, setGateways] = useState({
+        stripe1: { enabled: true, name: 'Stripe Business', pubKey: '' },
+        stripe2: { enabled: false, name: 'Stripe Personal', pubKey: '' },
+        paypal: { enabled: true, name: 'PayPal Official', email: '' }
     });
 
-    const [invoices, setInvoices] = useState(() => {
-        const saved = localStorage.getItem('nexus_invoices');
-        return saved ? JSON.parse(saved) : [
-            { id: 'INV-001', clientId: '1', clientName: 'Acme Corp', amount: 2500, status: 'Paid', date: '2023-10-24', dueDate: '2023-11-24', brandId: '1' },
-        ];
-    });
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [clientsRes, brandsRes, invoicesRes, configsRes] = await Promise.all([
+                insforge.database.from('clients').select('*'),
+                insforge.database.from('brands').select('*'),
+                insforge.database.from('invoices').select('*, clients!client_id(*), brands!brand_id(*), invoice_items(*)'),
+                insforge.database.from('configurations').select('*')
+            ]);
 
-    const [brands, setBrands] = useState(() => {
-        const saved = localStorage.getItem('nexus_brands');
-        return saved ? JSON.parse(saved) : [
-            { id: '1', name: 'Nexus Default', logo: null, color: '#CA1D2A', description: 'Your premium solution for business management and automated billing.' }
-        ];
-    });
+            if (clientsRes.error) throw clientsRes.error;
+            if (brandsRes.error) throw brandsRes.error;
+            if (invoicesRes.error) throw invoicesRes.error;
+            if (configsRes.error) throw configsRes.error;
 
-    const [gateways, setGateways] = useState(() => {
-        const saved = localStorage.getItem('nexus_gateways');
-        return saved ? JSON.parse(saved) : {
-            stripe1: { enabled: true, name: 'Stripe Business', pubKey: '' },
-            stripe2: { enabled: false, name: 'Stripe Personal', pubKey: '' },
-            paypal: { enabled: true, name: 'PayPal Official', email: '' }
-        };
-    });
+            setClients(clientsRes.data || []);
+            setBrands(brandsRes.data || []);
+            setInvoices(invoicesRes.data || []);
 
-    useEffect(() => {
-        localStorage.setItem('nexus_clients', JSON.stringify(clients));
-    }, [clients]);
-
-    useEffect(() => {
-        localStorage.setItem('nexus_invoices', JSON.stringify(invoices));
-    }, [invoices]);
+            const gatewayConfig = configsRes.data?.find(c => c.key === 'gateways');
+            if (gatewayConfig) setGateways(gatewayConfig.value);
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            toast.error('Failed to sync with InsForge');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        localStorage.setItem('nexus_brands', JSON.stringify(brands));
-    }, [brands]);
-
-    useEffect(() => {
-        localStorage.setItem('nexus_gateways', JSON.stringify(gateways));
-    }, [gateways]);
+        fetchData();
+    }, []);
 
     const addToast = (message, type = 'success') => {
         if (type === 'success') toast.success(message);
@@ -60,75 +55,119 @@ export const CRMProvider = ({ children }) => {
         else toast(message);
     };
 
-    const addClient = (client) => {
-        const newClient = {
-            ...client,
-            id: Date.now().toString(),
-            joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            history: [{ id: Date.now(), action: 'Profile Created', target: 'System', date: new Date().toLocaleString() }],
-            status: 'Active'
-        };
-        setClients((prev) => [newClient, ...prev]);
-        addToast('Client added successfully');
-        return newClient;
+    const addClient = async (client) => {
+        const { data, error } = await insforge.database.from('clients').insert([client]).select();
+        if (error) {
+            toast.error('Failed to add client');
+            return null;
+        }
+        setClients(prev => [...data, ...prev]);
+        toast.success('Client added to InsForge');
+        return data[0];
     };
 
-    const updateClient = (id, updatedData) => {
-        setClients((prev) => prev.map(c => c.id === id ? { ...c, ...updatedData } : c));
-        addToast('Client updated');
+    const updateClient = async (id, updatedData) => {
+        const { data, error } = await insforge.database.from('clients').update(updatedData).match({ id }).select();
+        if (error) {
+            toast.error('Update failed');
+            return;
+        }
+        setClients(prev => prev.map(c => c.id === id ? data[0] : c));
+        toast.success('Client updated');
     };
 
-    const deleteClient = (id) => {
-        setClients((prev) => prev.filter(c => c.id !== id));
-        addToast('Client deleted', 'error');
+    const deleteClient = async (id) => {
+        const { error } = await insforge.database.from('clients').delete().match({ id });
+        if (error) {
+            toast.error('Delete failed');
+            return;
+        }
+        setClients(prev => prev.filter(c => c.id !== id));
+        toast.success('Client removed');
     };
 
-    const addBrand = (brand) => {
-        const newBrand = {
-            ...brand,
-            id: Date.now().toString()
-        };
-        setBrands((prev) => [...prev, newBrand]);
-        addToast('Brand added successfully');
-        return newBrand;
+    const addBrand = async (brand) => {
+        const { data, error } = await insforge.database.from('brands').insert([brand]).select();
+        if (error) {
+            toast.error('Failed to add brand');
+            return null;
+        }
+        setBrands(prev => [...prev, ...data]);
+        toast.success('Brand added successfully');
+        return data[0];
     };
 
-    const updateBrand = (id, updatedData) => {
-        setBrands((prev) => prev.map(b => b.id === id ? { ...b, ...updatedData } : b));
-        addToast('Brand updated');
+    const updateBrand = async (id, updatedData) => {
+        const { data, error } = await insforge.database.from('brands').update(updatedData).match({ id }).select();
+        if (error) {
+            toast.error('Update failed');
+            return;
+        }
+        setBrands(prev => prev.map(b => b.id === id ? data[0] : b));
+        toast.success('Brand updated');
     };
 
-    const deleteBrand = (id) => {
-        setBrands((prev) => prev.filter(b => b.id !== id));
-        addToast('Brand deleted', 'error');
+    const deleteBrand = async (id) => {
+        const { error } = await insforge.database.from('brands').delete().match({ id });
+        if (error) {
+            toast.error('Delete failed');
+            return;
+        }
+        setBrands(prev => prev.filter(b => b.id !== id));
+        toast.success('Brand deleted');
     };
 
-    const updateGateways = (newGateways) => {
+    const updateGateways = async (newGateways) => {
         setGateways(newGateways);
-        addToast('Payment gateways updated');
+        const { error } = await insforge.database.from('configurations').update({ value: newGateways }).match({ key: 'gateways' });
+        if (error) {
+            console.error('Failed to save configuration:', error);
+            toast.error('Settings sync failed');
+        } else {
+            addToast('Payment gateways updated on backend');
+        }
     };
 
-    const addInvoice = (invoice) => {
-        const newInvoice = {
-            ...invoice,
-            id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-            status: 'Pending',
-            date: new Date().toISOString().split('T')[0]
+    const addInvoice = async (invoice) => {
+        const { items: invoiceItems, allowedGateways, clientId, ...rest } = invoice;
+
+        // Map fields to DB names and remove frontend-only props
+        const invoiceData = {
+            ...rest,
+            client_id: clientId,
+            issue_date: invoice.issue_date,
+            due_date: invoice.due_date,
+            notes: invoice.notes,
+            status: 'Pending'
         };
-        setInvoices((prev) => [newInvoice, ...prev]);
 
-        // Add to client history
-        setClients((prev) => prev.map(c =>
-            c.id === invoice.clientId
-                ? { ...c, history: [{ id: Date.now(), action: 'Invoice Generated', target: newInvoice.id, date: new Date().toLocaleString() }, ...c.history] }
-                : c
-        ));
+        // 1. Create Invoice Header
+        const { data: invData, error: invError } = await insforge.database.from('invoices').insert([invoiceData]).select();
 
-        addToast('Invoice created successfully');
-        return newInvoice;
+        if (invError) {
+            console.error('Invoice Header Error:', invError);
+            toast.error('Failed to create invoice header');
+            return null;
+        }
+
+        const newInvId = invData[0].id;
+
+        // 2. Create Invoice Items
+        if (invoiceItems && invoiceItems.length > 0) {
+            const itemsToInsert = invoiceItems.map(item => ({
+                ...item,
+                invoice_id: newInvId
+            }));
+            const { error: itemsError } = await insforge.database.from('invoice_items').insert(itemsToInsert);
+            if (itemsError) console.error('Items error:', itemsError);
+        }
+
+        fetchData(); // Refresh all to get joined data
+        toast.success('Invoice recorded in InsForge');
+        return invData[0];
     };
 
-    const updateInvoiceStatus = (invoiceId, status, paymentMethod = null) => {
+    const updateInvoiceStatus = async (invoiceId, status, paymentMethod = null) => {
         setInvoices(prev => prev.map(inv =>
             inv.id === invoiceId ? {
                 ...inv,
@@ -138,49 +177,117 @@ export const CRMProvider = ({ children }) => {
             } : inv
         ));
 
-        // Add to activity log if paid
-        if (status === 'Paid') {
-            const invoice = invoices.find(inv => inv.id === invoiceId);
-            const client = clients.find(c => c.id === invoice?.clientId);
-            if (client) {
-                const newActivity = {
-                    id: Date.now(),
-                    type: 'payment',
-                    title: `Payment Received - ${invoiceId}`,
-                    description: `Client ${client.name} paid ${invoice.amount} via ${paymentMethod || 'Manual'}`,
-                    date: 'Just now',
-                    status: 'success'
-                };
-                // In a real app, we'd update a separate activities state
-                console.log('Activity Logged:', newActivity);
+        // Persist to InsForge
+        const updateData = {
+            status,
+            payment_method: paymentMethod
+        };
+        if (status === 'Paid') updateData.paid_at = new Date().toISOString();
+
+        const { error } = await insforge.database.from('invoices').update(updateData).match({ id: invoiceId });
+        if (error) {
+            console.error('Update Status Error:', error);
+            toast.error('Sync failed');
+        } else {
+            // Add to activity log if paid
+            if (status === 'Paid') {
+                const invoice = invoices.find(inv => inv.id === invoiceId);
+                const client = clients.find(c => c.id === invoice?.client_id || c.id === invoice?.clientId);
+                if (client) {
+                    const newActivity = {
+                        id: Date.now(),
+                        type: 'payment',
+                        title: `Payment Received - ${invoiceId}`,
+                        description: `Client ${client.name} paid ${invoice.total || invoice.amount} via ${paymentMethod || 'Manual'}`,
+                        date: 'Just now',
+                        status: 'success'
+                    };
+                    console.log('Activity Logged:', newActivity);
+                }
+                addToast(`Invoice ${invoiceId} marked as Paid!`, 'success');
+            } else {
+                addToast(`Invoice status updated to ${status}`);
             }
-            addToast(`Invoice ${invoiceId} marked as Paid!`, 'success');
         }
     };
 
-
     const getDashboardStats = () => {
-        const totalRevenue = invoices.reduce((acc, inv) => acc + (inv.status === 'Paid' ? inv.amount : 0), 0);
-        const pendingAmount = invoices.reduce((acc, inv) => acc + (inv.status === 'Pending' || inv.status === 'Overdue' ? inv.amount : 0), 0);
-        const totalClients = clients.length;
-        const paidInvoicesCount = invoices.filter(inv => inv.status === 'Paid').length;
+        const now = new Date();
+        const thisMonth = now.getMonth();
+        const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
 
-        // Monthly revenue for chart (simplified)
+        // Revenue Stats
+        const totalRevenue = invoices.reduce((acc, inv) => acc + (inv.status === 'Paid' ? Number(inv.total || 0) : 0), 0);
+        const thisMonthRevenue = invoices
+            .filter(inv => inv.status === 'Paid' && new Date(inv.created_at).getMonth() === thisMonth)
+            .reduce((acc, inv) => acc + Number(inv.total || 0), 0);
+        const lastMonthRevenue = invoices
+            .filter(inv => inv.status === 'Paid' && new Date(inv.created_at).getMonth() === lastMonth)
+            .reduce((acc, inv) => acc + Number(inv.total || 0), 0);
+
+        const revTrend = lastMonthRevenue === 0 ? 100 : Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100);
+
+        // Client Stats
+        const totalClients = clients.length;
+        const pendingClients = [...new Set(invoices
+            .filter(inv => inv.status === 'Pending' || inv.status === 'Overdue' || inv.status === 'draft')
+            .map(inv => inv.client_id || inv.clientId)
+        )].length;
+
+        const lastMonthPendingClients = [...new Set(invoices
+            .filter(inv => (inv.status === 'Pending' || inv.status === 'Overdue' || inv.status === 'draft') && new Date(inv.created_at).getMonth() === lastMonth)
+            .map(inv => inv.client_id || inv.clientId)
+        )].length;
+
+        const clientTrend = lastMonthPendingClients === 0 ? pendingClients * 10 : Math.round(((pendingClients - lastMonthPendingClients) / lastMonthPendingClients) * 100);
+
+        // Pending Stats
+        const pendingAmount = invoices.reduce((acc, inv) => acc + (inv.status === 'Pending' || inv.status === 'Overdue' || inv.status === 'draft' ? Number(inv.total || 0) : 0), 0);
+        const lastMonthPendingAmount = invoices
+            .filter(inv => (inv.status === 'Pending' || inv.status === 'Overdue' || inv.status === 'draft') && new Date(inv.created_at).getMonth() === lastMonth)
+            .reduce((acc, inv) => acc + Number(inv.total || 0), 0);
+        const pendingTrend = lastMonthPendingAmount === 0 ? 0 : Math.round(((pendingAmount - lastMonthPendingAmount) / lastMonthPendingAmount) * 100);
+
+        const paidInvoicesCount = invoices.filter(inv => inv.status === 'Paid').length;
+        const lastMonthPaidCount = invoices.filter(inv => inv.status === 'Paid' && new Date(inv.created_at).getMonth() === lastMonth).length;
+        const paidTrend = lastMonthPaidCount === 0 ? 0 : Math.round(((paidInvoicesCount - lastMonthPaidCount) / lastMonthPaidCount) * 100);
+
+        // Dynamic 6-Month Revenue
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthlyRevenue = monthNames.map(month => ({
-            name: month,
-            revenue: invoices
-                .filter(inv => inv.status === 'Paid' && monthNames[new Date(inv.date).getMonth()] === month)
-                .reduce((acc, inv) => acc + inv.amount, 0)
-        }));
+        const monthlyRevenue = Array.from({ length: 6 }).map((_, i) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - (5 - i));
+            const m = d.getMonth();
+            const y = d.getFullYear();
+            return {
+                name: monthNames[m],
+                revenue: invoices
+                    .filter(inv => inv.status === 'Paid' && new Date(inv.created_at).getMonth() === m && new Date(inv.created_at).getFullYear() === y)
+                    .reduce((acc, inv) => acc + Number(inv.total || 0), 0)
+            };
+        });
 
         const statusData = [
-            { name: 'Paid', value: invoices.filter(i => i.status === 'Paid').reduce((a, b) => a + b.amount, 0), color: '#10b981' },
-            { name: 'Pending', value: invoices.filter(i => i.status === 'Pending').reduce((a, b) => a + b.amount, 0), color: '#f59e0b' },
-            { name: 'Overdue', value: invoices.filter(i => i.status === 'Overdue').reduce((a, b) => a + b.amount, 0), color: '#CA1D2A' },
+            { name: 'Paid', value: invoices.filter(i => i.status === 'Paid').reduce((a, b) => a + Number(b.total || 0), 0), color: '#10b981' },
+            { name: 'Pending', value: (invoices.filter(i => i.status === 'Pending') || []).reduce((a, b) => a + Number(b.total || 0), 0), color: '#f59e0b' },
+            { name: 'Overdue', value: (invoices.filter(i => i.status === 'Overdue') || []).reduce((a, b) => a + Number(b.total || 0), 0), color: '#CA1D2A' },
         ];
 
-        return { totalRevenue, pendingAmount, totalClients, paidInvoicesCount, monthlyRevenue, statusData };
+        return {
+            totalRevenue,
+            pendingAmount,
+            totalClients,
+            pendingClientsCount: pendingClients,
+            paidInvoicesCount,
+            monthlyRevenue,
+            statusData,
+            trends: {
+                revenue: revTrend,
+                clients: clientTrend,
+                paid: paidTrend,
+                pending: pendingTrend
+            }
+        };
     };
 
     return (

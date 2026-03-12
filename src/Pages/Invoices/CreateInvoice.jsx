@@ -1,21 +1,32 @@
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle2, ShieldCheck, FileText, CreditCard, Building2, Calendar } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '../../Components/UI/Card';
+// Assuming this might be used, or just removal
 import { Button } from '../../Components/UI/Button';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../Components/UI/Table';
 import { useCRM } from '../../Context/CRMContext';
 import emailjs from '@emailjs/browser';
 import toast from 'react-hot-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const CreateInvoice = () => {
     const { clients, brands, addInvoice } = useCRM();
     const navigate = useNavigate();
     const [selectedClientId, setSelectedClientId] = useState('');
-    const [selectedBrandId, setSelectedBrandId] = useState('1');
+    const [selectedBrandId, setSelectedBrandId] = useState('');
     const [items, setItems] = useState([{ id: 1, description: '', quantity: 1, price: 0 }]);
     const [allowedGateways, setAllowedGateways] = useState({ stripe1: true, stripe2: true, paypal: true });
+    const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dueDate, setDueDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const [notes, setNotes] = useState('');
     const [isSending, setIsSending] = useState(false);
+
+    useEffect(() => {
+        if (brands.length > 0 && !selectedBrandId) {
+            setSelectedBrandId(brands[0].id);
+        }
+        if (clients.length > 0 && !selectedClientId) {
+            setSelectedClientId(clients[0].id);
+        }
+    }, [brands, clients]);
 
     const selectedClient = clients.find(c => c.id === selectedClientId);
 
@@ -48,11 +59,15 @@ const CreateInvoice = () => {
         setIsSending(true);
 
         const client = clients.find(c => c.id === selectedClientId);
-        const newInvoice = addInvoice({
+        const newInvoice = await addInvoice({
             clientId: selectedClientId,
-            clientName: client.name,
-            brandId: selectedBrandId,
-            amount: total,
+            brand_id: selectedBrandId,
+            issue_date: issueDate,
+            due_date: dueDate,
+            notes: notes,
+            subtotal: subtotal,
+            tax: tax,
+            total: total,
             items: items.map(({ description, quantity, price }) => ({ description, quantity, price })),
             allowedGateways: allowedGateways
         });
@@ -115,9 +130,9 @@ const CreateInvoice = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] pb-20 -m-6 p-6">
+        <div className="min-h-screen bg-background mesh-gradient pb-20 -m-6 p-6 font-sans">
             {/* Top Navigation Bar */}
-            <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 -mx-6 mb-8 px-6 h-16 flex items-center justify-between">
+            <div className="glass-premium sticky top-0 z-30 -mx-6 mb-12 px-8 h-20 flex items-center justify-between border-b border-slate-200/40">
                 <div className="flex items-center gap-4">
                     <Link
                         to="/invoices"
@@ -126,44 +141,44 @@ const CreateInvoice = () => {
                     >
                         <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-primary" />
                     </Link>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Create New Invoice</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-sans">Invoice <span className="text-slate-400 font-light italic font-serif">Draft</span></h1>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <Button
                         onClick={handleSend}
                         disabled={isSending}
-                        className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 px-6 h-10 rounded-xl flex items-center gap-2 font-semibold transition-all hover:scale-[1.02] active:scale-95"
+                        className="btn-luxury px-8 h-12 shadow-xl shadow-slate-900/10"
                     >
                         {isSending ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <Send className="w-4 h-4" />
                         )}
-                        {isSending ? 'Sending...' : 'Send Invoice'}
+                        {isSending ? 'Dispatching...' : 'Dispatch Invoice'}
                     </Button>
                 </div>
             </div>
 
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Content Area */}
-                <div className="lg:col-span-8 space-y-8">
+                <div className="lg:col-span-8 space-y-12 animate-reveal">
                     {/* Entity Selection Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-black">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-black">
                         {/* Brand Selection Card */}
-                        <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-4 border-b border-slate-50">
-                                <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-primary rounded-full" />
-                                    Brand Presence
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
+                        <div className="glass-card rounded-[2rem] overflow-hidden group hover:shadow-2xl transition-all duration-700">
+                            <div className="p-6 pb-4 border-b border-slate-100/50">
+                                <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <Building2 className="w-3 h-3" />
+                                    Issuing Brand
+                                </h2>
+                            </div>
+                            <div className="p-8">
                                 <div className="space-y-4">
                                     <select
                                         value={selectedBrandId}
                                         onChange={(e) => setSelectedBrandId(e.target.value)}
-                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all cursor-pointer"
+                                        className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all cursor-pointer appearance-none"
                                     >
                                         {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
@@ -171,161 +186,194 @@ const CreateInvoice = () => {
                                     {(() => {
                                         const brand = brands.find(b => b.id === selectedBrandId);
                                         return brand && (
-                                            <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <div className="flex items-center gap-4">
+                                            <div className="p-5 bg-white border border-slate-100/60 rounded-3xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+                                                <div className="flex items-center gap-5">
                                                     <div
-                                                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-inner flex-shrink-0 overflow-hidden"
-                                                        style={{ backgroundColor: brand.color }}
+                                                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl flex-shrink-0 overflow-hidden"
+                                                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 20px -5px ${brand.color}44` }}
                                                     >
                                                         {brand.logo ? <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" /> : brand.name.charAt(0)}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <h4 className="font-bold text-slate-900 truncate">{brand.name}</h4>
-                                                        <p className="text-xs text-slate-500 line-clamp-1 italic">{brand.description || 'Global business presence.'}</p>
+                                                        <h4 className="font-bold text-slate-900 text-lg leading-tight truncate">{brand.name}</h4>
+                                                        <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic font-serif italic">{brand.description || 'Premium business entity'}</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         );
                                     })()}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
 
                         {/* Client Selection Card */}
-                        <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-4 border-b border-slate-50">
-                                <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                                    Bill To
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
+                        <div className="glass-card rounded-[2rem] overflow-hidden group hover:shadow-2xl transition-all duration-700">
+                            <div className="p-6 pb-4 border-b border-slate-100/50">
+                                <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <CreditCard className="w-3 h-3" />
+                                    Bill Attention
+                                </h2>
+                            </div>
+                            <div className="p-8">
                                 <div className="space-y-4">
                                     <select
                                         value={selectedClientId}
                                         onChange={(e) => setSelectedClientId(e.target.value)}
-                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all cursor-pointer"
+                                        className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all cursor-pointer appearance-none"
                                     >
-                                        <option value="">Choose a client...</option>
+                                        <option value="">Select a Client...</option>
                                         {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
 
                                     {selectedClient ? (
-                                        <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="p-5 bg-white border border-slate-100/60 rounded-3xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
                                             <div className="flex flex-col gap-1">
-                                                <p className="text-sm font-bold text-slate-900">{selectedClient.name}</p>
-                                                <p className="text-xs text-blue-600 font-medium">{selectedClient.company}</p>
-                                                <p className="text-xs text-slate-500 mt-1">{selectedClient.email}</p>
+                                                <p className="text-lg font-bold text-slate-900">{selectedClient.name}</p>
+                                                <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">{selectedClient.company}</p>
+                                                <p className="text-xs text-slate-400 mt-2 font-serif italic">{selectedClient.email}</p>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div className="p-4 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center">
-                                            <p className="text-xs text-slate-400 font-medium italic">No client selected yet</p>
-                                        </div>
-                                    )}
+                                    ) : null}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
+
+                        {/* Document Schedule Card */}
+                        <div className="glass-card rounded-[2rem] overflow-hidden group hover:shadow-2xl transition-all duration-700">
+                            <div className="p-6 pb-4 border-b border-slate-100/50">
+                                <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <Calendar className="w-3 h-3" />
+                                    Document Schedule
+                                </h2>
+                            </div>
+                            <div className="p-8">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Issue Date</label>
+                                        <input
+                                            type="date"
+                                            value={issueDate}
+                                            onChange={(e) => setIssueDate(e.target.value)}
+                                            className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Due Date</label>
+                                        <input
+                                            type="date"
+                                            value={dueDate}
+                                            onChange={(e) => setDueDate(e.target.value)}
+                                            className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Payment Gateways Section Area */}
-                    <Card className="border-none shadow-sm bg-white overflow-hidden text-black">
-                        <CardHeader className="pb-4 border-b border-slate-50">
-                            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                <div className="w-1 h-4 bg-emerald-500 rounded-full" />
-                                Payment Availability
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-8">
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-slate-400" />
+                                    Payment Channels
+                                </h2>
+                                <p className="text-[11px] text-slate-500 mt-0.5">Select preferred gateways for this invoice</p>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Secure</span>
+                            </div>
+                        </div>
+                        <div className="p-8">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <GatewayToggle
                                     active={allowedGateways.stripe1}
                                     label="Stripe Business"
-                                    icon={<CreditCard className="w-5 h-5 text-indigo-500" />}
+                                    icon={<CreditCard className="w-5 h-5" />}
                                     onClick={() => setAllowedGateways(prev => ({ ...prev, stripe1: !prev.stripe1 }))}
                                 />
                                 <GatewayToggle
                                     active={allowedGateways.stripe2}
                                     label="Stripe Personal"
-                                    icon={<CreditCard className="w-5 h-5 text-purple-500" />}
+                                    icon={<CreditCard className="w-5 h-5" />}
                                     onClick={() => setAllowedGateways(prev => ({ ...prev, stripe2: !prev.stripe2 }))}
                                 />
                                 <GatewayToggle
                                     active={allowedGateways.paypal}
-                                    label="PayPal Gateway"
+                                    label="PayPal Official"
                                     icon={<img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" className="h-4" />}
                                     onClick={() => setAllowedGateways(prev => ({ ...prev, paypal: !prev.paypal }))}
                                 />
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
 
                     {/* Items Section Area */}
-                    <Card className="border-none shadow-sm bg-white overflow-hidden text-black">
-                        <CardHeader className="pb-4 border-b border-slate-50 flex flex-row items-center justify-between">
-                            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                <div className="w-1 h-4 bg-amber-500 rounded-full" />
-                                Invoice Line Items
-                            </CardTitle>
-                            <Button
+                    <div className="glass-card rounded-[2.5rem] overflow-hidden text-black transition-all duration-700 hover:shadow-2xl">
+                        <div className="p-8 pb-4 border-b border-slate-100/50 flex flex-row items-center justify-between">
+                            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <FileText className="w-3 h-3" />
+                                Line Item Specifications
+                            </h2>
+                            <button
                                 onClick={addItem}
-                                variant="outline"
-                                size="sm"
-                                className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary rounded-xl flex items-center gap-2 h-9 px-4 font-bold transition-all"
+                                className="group flex items-center gap-2 h-10 px-5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-500 font-bold text-xs"
                             >
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90" />
                                 Add Position
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="p-0">
+                            </button>
+                        </div>
+                        <div className="p-0">
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="bg-slate-50/50 border-b border-slate-100">
-                                            <th className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] py-4 px-8">Description</th>
-                                            <th className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] py-4 px-4">Qty</th>
-                                            <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] py-4 px-4">Rate</th>
-                                            <th className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] py-4 px-8">Amount</th>
-                                            <th className="w-16"></th>
+                                        <tr className="bg-slate-50/30 border-b border-slate-100/50">
+                                            <th className="text-left text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] py-6 px-10">Description</th>
+                                            <th className="text-center text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] py-6 px-4">Qty</th>
+                                            <th className="text-right text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] py-6 px-4">Rate</th>
+                                            <th className="text-right text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] py-6 px-10">Amount</th>
+                                            <th className="w-20"></th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50">
+                                    <tbody className="divide-y divide-slate-100/50">
                                         {items.map((item) => (
-                                            <tr key={item.id} className="group hover:bg-slate-50/30 transition-colors">
-                                                <td className="py-5 px-8">
+                                            <tr key={item.id} className="group hover:bg-slate-50/40 transition-all duration-300 animate-in fade-in slide-in-from-left-2">
+                                                <td className="py-7 px-10">
                                                     <input
                                                         type="text"
-                                                        placeholder="Consultation, Development, etc..."
-                                                        className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-slate-700 placeholder:text-slate-300 outline-none"
+                                                        placeholder="Item description..."
+                                                        className="w-full bg-transparent border-none focus:ring-0 text-base font-medium text-slate-900 placeholder:text-slate-300 outline-none font-serif"
                                                         value={item.description}
                                                         onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                                                     />
                                                 </td>
-                                                <td className="py-5 px-4 text-center">
+                                                <td className="py-7 px-4 text-center">
                                                     <input
                                                         type="number"
-                                                        className="w-12 bg-transparent border-none focus:ring-0 text-sm font-medium text-slate-700 text-center outline-none"
+                                                        className="w-12 bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-900 text-center outline-none"
                                                         value={item.quantity}
                                                         onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
                                                     />
                                                 </td>
-                                                <td className="py-5 px-4 text-right">
+                                                <td className="py-7 px-4 text-right">
                                                     <input
                                                         type="number"
-                                                        className="w-24 bg-transparent border-none focus:ring-0 text-sm font-medium text-slate-700 text-right outline-none"
+                                                        className="w-24 bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-900 text-right outline-none"
                                                         value={item.price}
                                                         onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
                                                     />
                                                 </td>
-                                                <td className="py-5 px-8 text-right font-bold text-slate-900">
+                                                <td className="py-7 px-10 text-right font-black text-slate-900 text-lg tracking-tighter">
                                                     ${(item.quantity * item.price).toLocaleString()}
                                                 </td>
-                                                <td className="py-5 px-4 text-center">
+                                                <td className="py-7 px-6 text-center">
                                                     <button
                                                         onClick={() => removeItem(item.id)}
-                                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-100 rounded-lg transition-all"
+                                                        className="p-3 text-red-500 text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-500"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="w-4.5 h-4.5" />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -333,60 +381,90 @@ const CreateInvoice = () => {
                                     </tbody>
                                 </table>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
+
+                    {/* Statement Notes section */}
+                    <div className="glass-card rounded-[2.5rem] overflow-hidden group hover:shadow-2xl transition-all duration-700">
+                        <div className="p-8 pb-4 border-b border-slate-100/50">
+                            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <FileText className="w-3 h-3" />
+                                Statement Executive Notes
+                            </h2>
+                        </div>
+                        <div className="p-8">
+                            <textarea
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                placeholder="Enter custom terms, delivery details, or professional markdown notes..."
+                                className="w-full h-40 bg-slate-50 border border-slate-200 rounded-[2rem] p-8 text-sm font-medium focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all resize-none font-serif italic"
+                            />
+                            <div className="flex items-center gap-2 mt-4 px-4">
+                                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Supports Rich Text & Markdown formatting</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Sidebar Summary Area Section */}
-                <div className="lg:col-span-4 h-fit lg:sticky lg:top-24 text-black">
-                    <Card className="border-none shadow-2xl bg-white overflow-hidden">
-                        <div className="bg-primary/5 p-6 border-b border-primary/10">
-                            <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                <FileText className="w-4 h-4" />
-                                Financial Summary
+                <div className="lg:col-span-4 h-fit lg:sticky lg:top-32 text-black space-y-6">
+                    <div className="glass-card rounded-[2.5rem] overflow-hidden border border-slate-900/5 shadow-2xl animate-reveal" style={{ animationDelay: '200ms' }}>
+                        <div className="bg-slate-900 p-8">
+                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5" />
+                                Settlement Summary
                             </h3>
                         </div>
-                        <CardContent className="p-8 space-y-6">
+                        <div className="p-10 space-y-8">
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-slate-500">Subtotal</span>
-                                    <span className="text-sm font-bold text-slate-900">${subtotal.toLocaleString()}</span>
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Base Amount</span>
+                                    <span className="text-base font-bold text-slate-900">${subtotal.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-slate-500">Tax (10%)</span>
-                                    <span className="text-sm font-bold text-slate-900">${tax.toLocaleString()}</span>
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Service Tax (10%)</span>
+                                    <span className="text-base font-bold text-slate-900">${tax.toLocaleString()}</span>
                                 </div>
-                                <div className="pt-6 border-t border-slate-100">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Payable</span>
-                                        <div className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter">SECURE</div>
+                                <div className="pt-8 border-t border-slate-100">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Final Valuation</span>
+                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">
+                                            <ShieldCheck className="w-3 h-3" />
+                                            <span className="text-[9px] font-black uppercase tracking-tighter">Verified</span>
+                                        </div>
                                     </div>
-                                    <div className="text-4xl font-black text-primary tracking-tighter">
+                                    <div className="text-5xl font-black text-slate-900 tracking-tighter">
                                         ${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-4 flex flex-col gap-3">
-                                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Audit trail guaranteed</span>
+                            <div className="pt-4 flex flex-col gap-4">
+                                <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100/50">
+                                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium italic font-serif">
+                                        "This instrument facilitates secure cross-border settlement via the Nexus proprietary infrastructure."
+                                    </p>
                                 </div>
-                                <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
-                                    This invoice will be electronically signed and dispatched via the secure Nexus delivery network.
-                                </p>
+                                <div className="flex items-center gap-2 px-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Secured by Renaissance SSL</span>
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Helper Elements */}
-                    <div className="mt-6 flex flex-col gap-4">
-                        <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm opacity-60">
-                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                                <ShieldCheck className="w-4 h-4" />
-                            </div>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">SSL Encrypted Delivery</span>
                         </div>
+                    </div>
+
+                    <div className="glass-premium p-6 rounded-[2rem] flex items-center justify-between border border-slate-200/40">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg text-slate-900">
+                                <CheckCircle2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-900 tracking-tight">Enterprise Draft</p>
+                                <p className="text-[10px] text-slate-400 font-medium">Auto-saved to Nexus Cloud</p>
+                            </div>
+                        </div>
+                        <Building2 className="w-5 h-5 text-red-500" />
                     </div>
                 </div>
             </div>
@@ -394,27 +472,30 @@ const CreateInvoice = () => {
     );
 };
 
-// Sub-component for Gateway Toggles UI
+// Sub-component for Gateway Toggles UI - Clean Tailwind Version
 const GatewayToggle = ({ active, label, icon, onClick }) => (
     <div
         onClick={onClick}
-        className={`group relative p-5 rounded-[2rem] border-2 transition-all cursor-pointer flex flex-col items-center gap-4 text-center ${active
-                ? 'border-primary bg-primary/[0.02] shadow-xl shadow-primary/5'
-                : 'border-slate-50 bg-slate-50/50 hover:border-slate-200 opacity-60'
+        className={`relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-center gap-4 text-center ${active
+            ? 'border-slate-900 bg-slate-50 shadow-md ring-4 ring-slate-900/5'
+            : 'border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50/30'
             }`}
     >
-        <div className={`w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center transition-all group-hover:scale-110 ${active ? 'bg-white text-primary' : 'bg-slate-100 text-slate-300'
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'
             }`}>
             {icon}
         </div>
-        <div>
-            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${active ? 'text-slate-900' : 'text-slate-400'}`}>
+        <div className="space-y-1">
+            <span className={`text-xs font-bold block ${active ? 'text-slate-900' : 'text-slate-500'}`}>
                 {label}
+            </span>
+            <span className={`text-[10px] font-medium block uppercase tracking-wider ${active ? 'text-slate-500' : 'text-slate-300'}`}>
+                {active ? 'Enabled' : 'Disabled'}
             </span>
         </div>
         {active && (
-            <div className="absolute top-4 right-4 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200">
-                <CheckCircle2 className="w-3 h-3 stroke-[4]" />
+            <div className="absolute top-3 right-3 w-5 h-5 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
+                <CheckCircle2 className="w-3 h-3" />
             </div>
         )}
     </div>

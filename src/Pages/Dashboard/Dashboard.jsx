@@ -49,28 +49,28 @@ const Dashboard = () => {
                     title="Total Revenue"
                     value={`$${stats.totalRevenue.toLocaleString()}`}
                     icon={DollarSign}
-                    trendValue="+12%"
+                    trendValue={`${stats.trends.revenue >= 0 ? '+' : ''}${stats.trends.revenue}%`}
                     colorClass="bg-secondary"
                 />
                 <StatCard
-                    title="Total Clients"
-                    value={stats.totalClients}
+                    title="Pending Clients"
+                    value={stats.pendingClientsCount}
                     icon={Users}
-                    trendValue="+18%"
+                    trendValue={`${stats.trends.clients >= 0 ? '+' : ''}${stats.trends.clients}%`}
                     colorClass="bg-blue-500"
                 />
                 <StatCard
                     title="Invoices Paid"
                     value={stats.paidInvoicesCount}
                     icon={FileCheck}
-                    trendValue="+5%"
+                    trendValue={`${stats.trends.paid >= 0 ? '+' : ''}${stats.trends.paid}%`}
                     colorClass="bg-emerald-500"
                 />
                 <StatCard
                     title="Pending Amount"
                     value={`$${stats.pendingAmount.toLocaleString()}`}
                     icon={AlertCircle}
-                    trendValue="+2%"
+                    trendValue={`${stats.trends.pending >= 0 ? '+' : ''}${stats.trends.pending}%`}
                     colorClass="bg-primary"
                 />
             </div>
@@ -117,10 +117,10 @@ const Dashboard = () => {
                         <TableBody>
                             {recentInvoices.map((inv) => (
                                 <TableRow key={inv.id}>
-                                    <TableCell className="font-semibold text-secondary">{inv.id}</TableCell>
-                                    <TableCell>{inv.clientName}</TableCell>
-                                    <TableCell>${inv.amount.toLocaleString()}</TableCell>
-                                    <TableCell className="text-gray-500">{inv.date}</TableCell>
+                                    <TableCell className="font-semibold text-secondary">{inv.id.split('-')[0]}</TableCell>
+                                    <TableCell>{inv.clients?.name || 'Unknown Client'}</TableCell>
+                                    <TableCell>${Number(inv.total || 0).toLocaleString()}</TableCell>
+                                    <TableCell className="text-gray-500">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell>
                                         <Badge variant={
                                             inv.status === 'Paid' ? 'success' :

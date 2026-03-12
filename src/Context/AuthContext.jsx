@@ -1,28 +1,54 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { insforge } from '../Lib/insforge';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isLoggedIn') === 'true';
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const login = (email, password) => {
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data, error } = await insforge.database
+          .from('configurations')
+          .select('value')
+          .match({ key: 'admin_session' })
+          .single();
+
+        if (data && data.value && data.value.isLoggedIn) {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error('Session check failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const login = async (email, password) => {
     if (email === 'admin@gmail.com' && password === 'admin123') {
       setIsAuthenticated(true);
-      localStorage.setItem('isLoggedIn', 'true');
+      await insforge.database
+        .from('configurations')
+        .upsert({ key: 'admin_session', value: { isLoggedIn: true, lastLogin: new Date().toISOString() } });
       return true;
     }
     return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('isLoggedIn');
+    await insforge.database
+      .from('configurations')
+      .update({ value: { isLoggedIn: false } })
+      .match({ key: 'admin_session' });
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

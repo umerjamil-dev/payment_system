@@ -17,48 +17,77 @@ const LoginPage = () => {
         setIsLoading(true);
 
         // Simulate network delay for premium feel
-        setTimeout(() => {
-            const success = login(email, password);
-            if (success) {
-                navigate('/');
-            } else {
-                setError('Invalid credentials. Please try again.');
+        setTimeout(async () => {
+            try {
+                const success = await login(email, password);
+                if (success) {
+                    navigate('/');
+                } else {
+                    setError('Invalid credentials. Please try again.');
+                    setIsLoading(false);
+                }
+            } catch (err) {
+                setError('Establish Link Failed. Server Offline.');
                 setIsLoading(false);
             }
         }, 1200);
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
-            <div className="tech-bg" />
+        <div className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden bg-[#0A0A0B]">
+            {/* Dynamic Tech Background Layer */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(202,29,42,0.05),transparent_70%)]" />
+                <div className="absolute inset-0 opacity-20"
+                    style={{ backgroundImage: 'radial-gradient(#ffffff10 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-[#0A0A0B]/80 to-[#0A0A0B]" />
+            </div>
 
-            {/* Decorative Orbs */}
-            <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-            <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />
+            {/* Floating Premium Orbs */}
+            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[150px] animate-pulse duration-[10s]" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[150px] animate-pulse duration-[8s]" />
 
-            <div className="w-full max-w-md relative z-10">
-                <div className="glass-card p-8 md:p-10 animate-glow">
-                    <div className="flex flex-col items-center mb-8">
-                        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mb-4 border border-primary/30">
-                            <Cpu className="w-8 h-8 text-primary" />
+            <div className="w-full max-w-xl relative z-10 group">
+                {/* Decorative Tech border */}
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-red-600/20 via-blue-600/20 to-red-600/20 rounded-[2.5rem] blur-sm opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+
+                <div className="relative bg-[#0F0F12]/80 backdrop-blur-3xl p-10 md:p-14 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden">
+                    {/* Scanner Line Animation */}
+                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-red-500/50 to-transparent animate-scan" />
+
+                    <div className="flex flex-col items-center mb-12">
+                        <div className="relative group/icon mb-8">
+
+                            <div className="w-20 h-20 bg-gradient-to-br from-[#1A1A1E] to-[#0A0A0B] rounded-3xl flex items-center justify-center border border-white/10 shadow-2xl relative z-10 transform group-hover/icon:rotate-[10deg] transition-transform duration-500">
+                                <Cpu className="w-10 h-10 text-red-500" />
+                            </div>
+
                         </div>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">
-                            Welcome Back
-                        </h1>
-                        <p className="text-white/50 text-center">
-                            Enter your tech credentials to access your dashboard
-                        </p>
+
+                        <div className="text-center space-y-2">
+                            <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic">
+                                Nexus <span className="text-red-600">Terminal</span>
+                            </h1>
+                            <div className="h-1 w-12 bg-red-600 mx-auto rounded-full" />
+                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] mt-4">
+                                Authentication Required
+                            </p>
+                        </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-white/70 ml-1">Email Address</label>
-                            <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-end px-1">
+                                <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Admin ID</label>
+                            </div>
+                            <div className="relative group/input">
+                                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                    <Mail className="w-5 h-5 text-white/20 group-focus-within/input:text-red-500 transition-colors" />
+                                </div>
                                 <input
                                     type="email"
                                     placeholder="admin@gmail.com"
-                                    className="input-field pl-14 pr-4"
+                                    className="w-full h-16 bg-white/5 border border-white/5 rounded-2xl pl-16 pr-6 text-sm font-bold text-white placeholder:text-white/20 focus:bg-white/10 focus:border-red-500/50 focus:ring-4 focus:ring-red-500/5 outline-none transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -66,14 +95,18 @@ const LoginPage = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-white/70 ml-1">Password</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-end px-1">
+                                <label className="text-[10px] font-black text-white/50 uppercase tracking-widest">Passcode</label>
+                            </div>
+                            <div className="relative group/input">
+                                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                    <Lock className="w-5 h-5 text-white/20 group-focus-within/input:text-red-500 transition-colors" />
+                                </div>
                                 <input
                                     type="password"
                                     placeholder="••••••••"
-                                    className="input-field pl-14 pr-4"
+                                    className="w-full h-16 bg-white/5 border border-white/5 rounded-2xl pl-16 pr-6 text-sm font-bold text-white placeholder:text-white/20 focus:bg-white/10 focus:border-red-500/50 focus:ring-4 focus:ring-red-500/5 outline-none transition-all"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -82,32 +115,35 @@ const LoginPage = () => {
                         </div>
 
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-3 flex items-center gap-3 animate-shake">
-                                <ShieldCheck className="w-5 h-5 text-red-500 shrink-0" />
-                                <p className="text-red-500 text-sm font-medium">{error}</p>
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4 animate-shake">
+                                <ShieldCheck className="w-6 h-6 text-red-500 shrink-0" />
+                                <p className="text-red-500 text-[11px] font-black uppercase tracking-wider leading-tight">{error}</p>
                             </div>
                         )}
 
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="btn-primary group relative overflow-hidden"
+                            className="w-full h-16 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-[0_10px_40px_-10px_rgba(202,29,42,0.5)] active:scale-95 transition-all relative overflow-hidden flex items-center justify-center gap-3 group/btn"
                         >
-                            <span className={`flex items-center justify-center gap-2 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                                Sign In <Rocket className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                            </span>
-                            {isLoading && (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
+                            {isLoading ? (
+                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    Establish Link <LogIn className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                                </>
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-8 border-t border-white/5 text-center">
-                        <p className="text-white/40 text-sm">
-                            Secured by Advanced Encryption Standard
-                        </p>
+                    <div className="mt-12 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                            <p className="text-white/30 text-[9px] font-black uppercase tracking-[.25em]">
+                                Core Security: AES-256 Active
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

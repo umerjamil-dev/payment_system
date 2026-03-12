@@ -12,7 +12,16 @@ import BrandList from '../Pages/Brands/BrandList'
 import { useAuth } from '../Context/AuthContext'
 
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-red-600/30 border-t-red-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
