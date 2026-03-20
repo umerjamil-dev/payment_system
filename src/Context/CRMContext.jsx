@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { insforge } from '../Lib/insforge';
+import { api as insforge } from '../lib/api';
 
 const CRMContext = createContext();
 
@@ -8,6 +8,7 @@ export const CRMProvider = ({ children }) => {
     const [clients, setClients] = useState([]);
     const [invoices, setInvoices] = useState([]);
     const [brands, setBrands] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [gateways, setGateways] = useState({
@@ -19,27 +20,30 @@ export const CRMProvider = ({ children }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [clientsRes, brandsRes, invoicesRes, configsRes] = await Promise.all([
+            const [clientsRes, brandsRes, invoicesRes, configsRes, activitiesRes] = await Promise.all([
                 insforge.database.from('clients').select('*'),
                 insforge.database.from('brands').select('*'),
                 insforge.database.from('invoices').select('*, clients!client_id(*), brands!brand_id(*), invoice_items(*)'),
-                insforge.database.from('configurations').select('*')
+                insforge.database.from('configurations').select('*'),
+                insforge.database.from('activities').select('*')
             ]);
 
             if (clientsRes.error) throw clientsRes.error;
             if (brandsRes.error) throw brandsRes.error;
             if (invoicesRes.error) throw invoicesRes.error;
             if (configsRes.error) throw configsRes.error;
+            if (activitiesRes.error) throw activitiesRes.error;
 
             setClients(clientsRes.data || []);
             setBrands(brandsRes.data || []);
             setInvoices(invoicesRes.data || []);
+            setActivities(activitiesRes.data || []);
 
             const gatewayConfig = configsRes.data?.find(c => c.key === 'gateways');
             if (gatewayConfig) setGateways(gatewayConfig.value);
         } catch (error) {
             console.error('Fetch Error:', error);
-            toast.error('Failed to sync with InsForge');
+            toast.error('Failed to sync with Backend');
         } finally {
             setLoading(false);
         }
@@ -48,6 +52,13 @@ export const CRMProvider = ({ children }) => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const addActivity = async (activity) => {
+        const { data, error } = await insforge.database.from('activities').insert([activity]).select();
+        if (!error && data) {
+            setActivities(prev => [data[0], ...prev]);
+        }
+    };
 
     const addToast = (message, type = 'success') => {
         if (type === 'success') toast.success(message);
@@ -62,7 +73,7 @@ export const CRMProvider = ({ children }) => {
             return null;
         }
         setClients(prev => [...data, ...prev]);
-        toast.success('Client added to InsForge');
+        toast.success('Client added successfully');
         return data[0];
     };
 
@@ -72,7 +83,7 @@ export const CRMProvider = ({ children }) => {
             toast.error('Update failed');
             return;
         }
-        setClients(prev => prev.map(c => c.id === id ? data[0] : c));
+        setClients(prev => prev.map(c => String(c.id) === String(id) ? data[0] : c));
         toast.success('Client updated');
     };
 
@@ -82,7 +93,7 @@ export const CRMProvider = ({ children }) => {
             toast.error('Delete failed');
             return;
         }
-        setClients(prev => prev.filter(c => c.id !== id));
+        setClients(prev => prev.filter(c => String(c.id) !== String(id)));
         toast.success('Client removed');
     };
 
@@ -103,7 +114,7 @@ export const CRMProvider = ({ children }) => {
             toast.error('Update failed');
             return;
         }
-        setBrands(prev => prev.map(b => b.id === id ? data[0] : b));
+        setBrands(prev => prev.map(b => String(b.id) === String(id) ? data[0] : b));
         toast.success('Brand updated');
     };
 
@@ -113,7 +124,7 @@ export const CRMProvider = ({ children }) => {
             toast.error('Delete failed');
             return;
         }
-        setBrands(prev => prev.filter(b => b.id !== id));
+        setBrands(prev => prev.filter(b => String(b.id) !== String(id)));
         toast.success('Brand deleted');
     };
 
@@ -163,13 +174,13 @@ export const CRMProvider = ({ children }) => {
         }
 
         fetchData(); // Refresh all to get joined data
-        toast.success('Invoice recorded in InsForge');
+        toast.success('Invoice recorded on Backend');
         return invData[0];
     };
 
     const updateInvoiceStatus = async (invoiceId, status, paymentMethod = null) => {
         setInvoices(prev => prev.map(inv =>
-            inv.id === invoiceId ? {
+            String(inv.id) === String(invoiceId) ? {
                 ...inv,
                 status,
                 paidAt: status === 'Paid' ? new Date().toISOString() : inv.paidAt,
@@ -177,7 +188,7 @@ export const CRMProvider = ({ children }) => {
             } : inv
         ));
 
-        // Persist to InsForge
+        // Persist to Backend
         const updateData = {
             status,
             payment_method: paymentMethod
@@ -191,18 +202,16 @@ export const CRMProvider = ({ children }) => {
         } else {
             // Add to activity log if paid
             if (status === 'Paid') {
-                const invoice = invoices.find(inv => inv.id === invoiceId);
-                const client = clients.find(c => c.id === invoice?.client_id || c.id === invoice?.clientId);
+                const invoice = invoices.find(inv => String(inv.id) === String(invoiceId));
+                const client = clients.find(c => String(c.id) === String(invoice?.client_id || invoice?.clientId));
                 if (client) {
                     const newActivity = {
-                        id: Date.now(),
                         type: 'payment',
                         title: `Payment Received - ${invoiceId}`,
                         description: `Client ${client.name} paid ${invoice.total || invoice.amount} via ${paymentMethod || 'Manual'}`,
-                        date: 'Just now',
                         status: 'success'
                     };
-                    console.log('Activity Logged:', newActivity);
+                    addActivity(newActivity);
                 }
                 addToast(`Invoice ${invoiceId} marked as Paid!`, 'success');
             } else {
@@ -231,12 +240,12 @@ export const CRMProvider = ({ children }) => {
         const totalClients = clients.length;
         const pendingClients = [...new Set(invoices
             .filter(inv => inv.status === 'Pending' || inv.status === 'Overdue' || inv.status === 'draft')
-            .map(inv => inv.client_id || inv.clientId)
+            .map(inv => String(inv.client_id || inv.clientId))
         )].length;
 
         const lastMonthPendingClients = [...new Set(invoices
             .filter(inv => (inv.status === 'Pending' || inv.status === 'Overdue' || inv.status === 'draft') && new Date(inv.created_at).getMonth() === lastMonth)
-            .map(inv => inv.client_id || inv.clientId)
+            .map(inv => String(inv.client_id || inv.clientId))
         )].length;
 
         const clientTrend = lastMonthPendingClients === 0 ? pendingClients * 10 : Math.round(((pendingClients - lastMonthPendingClients) / lastMonthPendingClients) * 100);
@@ -305,7 +314,9 @@ export const CRMProvider = ({ children }) => {
             updateGateways,
             addInvoice,
             updateInvoiceStatus,
-            getDashboardStats
+            getDashboardStats,
+            activities,
+            addActivity
         }}>
             {children}
         </CRMContext.Provider>

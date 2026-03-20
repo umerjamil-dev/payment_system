@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 
 const CreateInvoice = () => {
-    const { clients, brands, addInvoice } = useCRM();
+    const { clients, brands, addInvoice, addActivity } = useCRM();
     const navigate = useNavigate();
     const [selectedClientId, setSelectedClientId] = useState('');
     const [selectedBrandId, setSelectedBrandId] = useState('');
@@ -28,7 +28,7 @@ const CreateInvoice = () => {
         }
     }, [brands, clients]);
 
-    const selectedClient = clients.find(c => c.id === selectedClientId);
+    const selectedClient = clients.find(c => String(c.id) === String(selectedClientId));
 
     const addItem = () => {
         setItems([...items, { id: Date.now(), description: '', quantity: 1, price: 0 }]);
@@ -58,7 +58,7 @@ const CreateInvoice = () => {
 
         setIsSending(true);
 
-        const client = clients.find(c => c.id === selectedClientId);
+        const client = clients.find(c => String(c.id) === String(selectedClientId));
         const newInvoice = await addInvoice({
             clientId: selectedClientId,
             brand_id: selectedBrandId,
@@ -73,7 +73,16 @@ const CreateInvoice = () => {
         });
 
         if (newInvoice) {
-            const paymentLink = `${window.location.protocol}//${window.location.host}/pay/${newInvoice.id}`;
+            // Log Activity
+            addActivity({
+                type: 'invoice',
+                title: 'New Invoice Drafted',
+                description: `Invoice for ${client.name} - amount $${total.toFixed(2)}`,
+                status: 'info'
+            });
+
+            const paymentId = newInvoice.uuid || newInvoice.id;
+            const paymentLink = `${window.location.protocol}//${window.location.host}/pay/${paymentId}`;
 
             // Backup: copy to clipboard
             navigator.clipboard.writeText(paymentLink);
@@ -184,7 +193,7 @@ const CreateInvoice = () => {
                                     </select>
 
                                     {(() => {
-                                        const brand = brands.find(b => b.id === selectedBrandId);
+                                        const brand = brands.find(b => String(b.id) === String(selectedBrandId));
                                         return brand && (
                                             <div className="p-5 bg-white border border-slate-100/60 rounded-3xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
                                                 <div className="flex items-center gap-5">

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { insforge } from '../Lib/insforge';
+import { api as insforge } from '../lib/api';
 
 const AuthContext = createContext();
 

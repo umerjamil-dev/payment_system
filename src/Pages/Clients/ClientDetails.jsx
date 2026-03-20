@@ -12,8 +12,8 @@ const ClientDetails = () => {
     const navigate = useNavigate();
     const { clients, invoices } = useCRM();
 
-    const client = clients.find(c => c.id === id);
-    const clientInvoices = invoices.filter(inv => inv.clientId === id);
+    const client = clients.find(c => String(c.id) === String(id));
+    const clientInvoices = invoices.filter(inv => String(inv.clientId || inv.client_id) === String(id));
 
     if (!client) {
         return (
@@ -48,14 +48,17 @@ const ClientDetails = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Client Info Card */}
                 <div className="lg:col-span-1 space-y-6">
-                    <Card>
-                        <CardContent className="p-8 flex flex-col items-center text-center">
-                            <div className="w-24 h-24 rounded-full bg-secondary text-white text-3xl flex items-center justify-center font-bold mb-4 shadow-lg ring-4 ring-secondary/10">
+                    <Card className="overflow-hidden border-none shadow-2xl">
+                        <div className="h-32 bg-gradient-to-br from-secondary via-secondary/80 to-primary/20 relative">
+                            <div className="absolute inset-0 mesh-gradient opacity-30" />
+                        </div>
+                        <CardContent className="p-8 pt-0 flex flex-col items-center text-center relative">
+                            <div className="w-24 h-24 rounded-full bg-white text-secondary text-3xl flex items-center justify-center font-black -mt-12 mb-4 shadow-2xl ring-4 ring-white relative z-10 transition-transform hover:scale-105 duration-500">
                                 {client.name.charAt(0)}
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">{client.name}</h3>
-                            <p className="text-gray-500 mb-4">{client.company}</p>
-                            <Badge variant={client.status === 'Active' ? 'success' : 'default'} className="mb-6">
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{client.name}</h3>
+                            <p className="text-slate-500 font-medium mb-4">{client.company}</p>
+                            <Badge variant={client.status === 'Active' ? 'success' : 'default'} className="mb-6 px-4 py-1 uppercase tracking-widest text-[10px] font-black">
                                 {client.status}
                             </Badge>
 
@@ -84,16 +87,17 @@ const ClientDetails = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-secondary text-white">
-                        <CardContent className="p-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-blue-100 text-sm opacity-80">Lifetime Value</p>
-                                    <h4 className="text-2xl font-bold">${totalSpent.toLocaleString()}</h4>
+                    <Card className="relative overflow-hidden border-none shadow-2xl bg-[#0A0A0C] text-white group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/20 rounded-full -translate-y-16 translate-x-16 blur-3xl group-hover:bg-secondary/40 transition-colors duration-700" />
+                        <CardContent className="p-8 relative z-10">
+                            <div className="space-y-8">
+                                <div className="p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md transition-all hover:bg-white/[0.07]">
+                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Portfolio Value</p>
+                                    <h4 className="text-4xl font-black tracking-tighter text-white">${totalSpent.toLocaleString()}</h4>
                                 </div>
-                                <div>
-                                    <p className="text-blue-100 text-sm opacity-80">Pending Payment</p>
-                                    <h4 className="text-2xl font-bold">${pendingAmount.toLocaleString()}</h4>
+                                <div className="p-6 bg-red-600/5 rounded-[2rem] border border-red-600/10 backdrop-blur-md transition-all hover:bg-red-600/[0.08]">
+                                    <p className="text-red-400/80 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Active Receivables</p>
+                                    <h4 className="text-4xl font-black tracking-tighter text-white">${pendingAmount.toLocaleString()}</h4>
                                 </div>
                             </div>
                         </CardContent>
@@ -154,7 +158,7 @@ const ClientDetails = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                                {client.history.map((event) => (
+                                { (client.history || []).map((event) => (
                                     <div key={event.id} className="relative flex items-center justify-between md:justify-start md:odd:flex-row-reverse group is-active">
                                         <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-gray-50 text-secondary shadow absolute left-0 md:left-5 md:-ml-5 z-10">
                                             <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>

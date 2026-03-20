@@ -16,7 +16,7 @@ const InvoiceList = () => {
 
     const filteredInvoices = invoices.filter(inv => {
         const clientName = inv.clients?.name || 'Unknown Client';
-        return inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        return inv.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
             clientName.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
@@ -39,23 +39,35 @@ const InvoiceList = () => {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-emerald-50 border-emerald-100">
-                    <CardContent className="p-4">
-                        <p className="text-sm text-emerald-600 font-medium">Total Collected</p>
-                        <h4 className="text-xl font-bold text-emerald-900">${stats.collected.toLocaleString()}</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-black">
+                <Card className="relative overflow-hidden border-none bg-[#0A0A0C] shadow-2xl group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-emerald-500/20 transition-all duration-700" />
+                    <CardContent className="p-6 relative z-10">
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Total Collected</p>
+                        <h4 className="text-3xl font-black tracking-tighter ">${stats.collected.toLocaleString()}</h4>
+                        <div className="mt-4 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 w-[70%]" />
+                        </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-amber-50 border-amber-100">
-                    <CardContent className="p-4">
-                        <p className="text-sm text-amber-600 font-medium">Outstanding</p>
-                        <h4 className="text-xl font-bold text-amber-900">${stats.outstanding.toLocaleString()}</h4>
+                <Card className="relative overflow-hidden border-none bg-[#0A0A0C]  shadow-2xl group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-amber-500/20 transition-all duration-700" />
+                    <CardContent className="p-6 relative z-10">
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Outstanding Balance</p>
+                        <h4 className="text-3xl font-black tracking-tighter ">${stats.outstanding.toLocaleString()}</h4>
+                        <div className="mt-4 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-500 w-[45%]" />
+                        </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-red-50 border-red-100">
-                    <CardContent className="p-4">
-                        <p className="text-sm text-red-600 font-medium">Overdue</p>
-                        <h4 className="text-xl font-bold text-red-900">${stats.overdue.toLocaleString()}</h4>
+                <Card className="relative overflow-hidden border-none bg-[#0A0A0C]  shadow-2xl group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-red-600/20 transition-all duration-700" />
+                    <CardContent className="p-6 relative z-10">
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Overdue Receivables</p>
+                        <h4 className="text-3xl font-black tracking-tighter ">${stats.overdue.toLocaleString()}</h4>
+                        <div className="mt-4 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-red-600 w-[20%]" />
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -96,7 +108,7 @@ const InvoiceList = () => {
                         <TableBody>
                             {filteredInvoices.map((inv) => (
                                 <TableRow key={inv.id}>
-                                    <TableCell className="font-semibold text-secondary">{inv.id.split('-')[0]}</TableCell>
+                                    <TableCell className="font-semibold text-secondary">{inv.id.toString().split('-')[0]}</TableCell>
                                     <TableCell>{inv.clients?.name || 'Unknown Client'}</TableCell>
                                     <TableCell className="text-gray-500">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell className="font-medium">${Number(inv.total || 0).toLocaleString()}</TableCell>
@@ -118,7 +130,7 @@ const InvoiceList = () => {
                                                         className="h-8 w-8 p-0 text-indigo-500 hover:bg-indigo-50"
                                                         title="Copy Payment Link"
                                                         onClick={() => {
-                                                            const link = `${window.location.host}/pay/${inv.id}`;
+                                                            const link = `${window.location.protocol}//${window.location.host}/pay/${inv.uuid || inv.id}`;
                                                             navigator.clipboard.writeText(link);
                                                             toast.success('Payment link copied to clipboard!');
                                                         }}

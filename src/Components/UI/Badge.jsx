@@ -3,12 +3,12 @@ import { cn } from '../../lib/utils';
 
 export const Badge = ({ className, variant = 'default', children, ...props }) => {
     const variants = {
-        default: 'bg-gray-100 text-gray-800',
-        primary: 'bg-red-100 text-primary',
-        secondary: 'bg-blue-100 text-secondary',
-        success: 'bg-emerald-100 text-emerald-800',
-        warning: 'bg-yellow-100 text-yellow-800',
-        danger: 'bg-red-100 text-red-800',
+        default: 'bg-slate-50 text-slate-500 border border-slate-200/60',
+        primary: 'bg-primary/5 text-primary border border-primary/10',
+        secondary: 'bg-secondary/5 text-secondary border border-secondary/10',
+        success: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+        warning: 'bg-amber-50 text-amber-600 border border-amber-100',
+        danger: 'bg-red-50 text-red-600 border border-red-100',
     };
 
     return (

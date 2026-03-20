@@ -3,422 +3,847 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCRM } from '../../Context/CRMContext';
 import { StripeModal } from '../../Components/Payments/StripeModal';
 import {
-    BookOpen, Download, CheckCircle2, AlertCircle,
+    Download, CheckCircle2, AlertCircle,
     ShieldCheck, Mail, Building2, Calendar,
     CreditCard, Lock, ArrowRight,
-    BadgeCheck, Check
+    BadgeCheck, Printer, Sparkles, Check
 } from 'lucide-react';
 
+/* ─── Inject styles once ─────────────────────────────────────────────────── */
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+  .inv-root * { box-sizing: border-box; }
+
+  .inv-root {
+    --ink: #0D0D12;
+    --ink-2: #3A3A4A;
+    --ink-3: #7A7A8C;
+    --ink-4: #B8B8C8;
+    --surface: #FFFFFF;
+    --surface-2: #F7F7FA;
+    --surface-3: #EFEFF5;
+    --accent: #5B4FE9;
+    --accent-2: #8B7FF5;
+    --accent-glow: rgba(91,79,233,.18);
+    --success: #10B97B;
+    --danger: #EF4444;
+    --border: rgba(0,0,0,.07);
+    --border-soft: rgba(0,0,0,.04);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.06);
+    --shadow-xl: 0 40px 100px rgba(0,0,0,.12), 0 16px 40px rgba(0,0,0,.08);
+    --r-sm: 10px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --r-xl: 32px;
+    font-family: 'DM Sans', sans-serif;
+    background: #F2F2F8;
+    min-height: 100vh;
+    color: var(--ink);
+  }
+
+  /* ── Heading font ── */
+  .serif { font-family: 'DM Serif Display', serif; }
+
+  /* ── Page wrapper ── */
+  .inv-page {
+    padding: 48px 20px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* ── Top action bar ── */
+  .inv-topbar {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .inv-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .inv-topbar-logo {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+  .inv-topbar-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -.3px;
+  }
+  .inv-topbar-actions { display: flex; gap: 10px; }
+
+  .inv-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px;
+    border-radius: var(--r-sm);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+    border: none;
+  }
+  .inv-btn-ghost {
+    background: rgba(255,255,255,.8);
+    color: var(--ink-2);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+  }
+  .inv-btn-ghost:hover { background: #fff; box-shadow: var(--shadow-sm); }
+  .inv-btn-dark {
+    background: var(--ink);
+    color: #fff;
+  }
+  .inv-btn-dark:hover { background: #1a1a28; box-shadow: var(--shadow-md); }
+  .inv-btn-accent {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+  .inv-btn-accent:hover { background: #4A3ED8; box-shadow: 0 6px 20px var(--accent-glow); transform: translateY(-1px); }
+
+  /* ── Card ── */
+  .inv-card {
+    width: 100%;
+    max-width: 860px;
+    background: var(--surface);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+  }
+
+  /* ── Header band ── */
+  .inv-header {
+    padding: 48px 52px 40px;
+    background: var(--ink);
+    color: #fff;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: start;
+    position: relative;
+    overflow: hidden;
+  }
+  .inv-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 120% at 100% -20%, rgba(91,79,233,.35) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 80% at -10% 110%, rgba(91,79,233,.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .inv-header-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: rgba(255,255,255,.7);
+    margin-bottom: 20px;
+  }
+  .inv-header-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); }
+  .inv-header-title {
+    font-size: 13px; font-weight: 500; letter-spacing: .08em;
+    text-transform: uppercase; color: rgba(255,255,255,.45);
+    margin-bottom: 6px;
+  }
+  .inv-header-company {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px; line-height: 1.1; color: #fff;
+    margin-bottom: 24px;
+  }
+  .inv-header-ids {
+    display: flex; gap: 0;
+  }
+  .inv-header-id-chip {
+    padding: 10px 20px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .inv-header-id-chip:first-child { border-radius: 10px 0 0 10px; }
+  .inv-header-id-chip:last-child  { border-radius: 0 10px 10px 0; border-left: none; }
+  .inv-header-id-label {
+    font-size: 9px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(255,255,255,.35);
+  }
+  .inv-header-id-val {
+    font-size: 13px; font-weight: 700; color: rgba(255,255,255,.9);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .02em;
+  }
+  .inv-header-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 20px;
+    position: relative; z-index: 1;
+  }
+  .inv-qr {
+    width: 80px; height: 80px;
+    padding: 8px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+  }
+  .inv-qr img { width: 100%; height: 100%; display: block; }
+  .inv-word-invoice {
+    font-family: 'DM Serif Display', serif;
+    font-size: 64px; line-height: .85; color: rgba(255,255,255,.08);
+    letter-spacing: -.04em; text-align: right;
+    user-select: none;
+    position: absolute; bottom: 32px; right: 52px;
+  }
+
+  /* ── Status pill ── */
+  .inv-status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .inv-status-pill.paid   { background: rgba(16,185,123,.12); color: var(--success); }
+  .inv-status-pill.unpaid { background: rgba(239,68,68,.1);   color: var(--danger); }
+  .inv-status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+
+  /* ── Meta grid ── */
+  .inv-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .inv-meta-col {
+    padding: 36px 52px;
+  }
+  .inv-meta-col:first-child { border-right: 1px solid var(--border); }
+  .inv-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .inv-value { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .inv-meta-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
+  .inv-meta-row:last-child { border-bottom: none; }
+
+  .inv-client-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px; color: var(--ink); margin: 12px 0 6px;
+  }
+  .inv-client-sub { font-size: 14px; color: var(--ink-3); margin-bottom: 16px; }
+  .inv-contact-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--ink-2); margin-bottom: 7px;
+  }
+  .inv-contact-icon {
+    width: 28px; height: 28px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3); flex-shrink: 0;
+  }
+
+  /* ── Items table ── */
+  .inv-table-wrap { overflow-x: auto; }
+  table.inv-table { width: 100%; border-collapse: collapse; }
+  .inv-table thead tr {
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .inv-table th {
+    padding: 14px 52px;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-3);
+    text-align: left;
+  }
+  .inv-table th.right { text-align: right; }
+  .inv-table th.center { text-align: center; }
+  .inv-table tbody tr { border-bottom: 1px solid var(--border-soft); transition: background .15s; }
+  .inv-table tbody tr:last-child { border-bottom: none; }
+  .inv-table tbody tr:hover { background: var(--surface-2); }
+  .inv-table td { padding: 22px 52px; vertical-align: middle; }
+  .inv-table td.right { text-align: right; }
+  .inv-table td.center { text-align: center; }
+  .inv-item-name { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  .inv-item-sub  { font-size: 12px; color: var(--ink-4); }
+  .inv-item-price, .inv-item-qty { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+  .inv-item-total { font-size: 16px; font-weight: 700; color: var(--ink); }
+
+  /* ── Totals band ── */
+  .inv-totals-band {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .inv-notes-col {
+    padding: 36px 52px;
+    border-right: 1px solid var(--border);
+  }
+  .inv-note-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 20px 22px;
+    font-size: 13px; color: var(--ink-2); line-height: 1.7;
+    font-style: italic;
+  }
+  .inv-note-author { margin-top: 12px; font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--ink-4); font-style: normal; text-transform: uppercase; }
+  .inv-totals-col { padding: 36px 52px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .inv-total-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; }
+  .inv-total-label { font-size: 13px; font-weight: 500; color: var(--ink-3); }
+  .inv-total-val   { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+  .inv-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+  .inv-grand-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
+  .inv-grand-label { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+  .inv-grand-val { font-family: 'DM Serif Display', serif; font-size: 42px; color: var(--ink); letter-spacing: -.02em; line-height: 1; }
+
+  /* ── Payment section ── */
+  .inv-payment-section { padding: 52px; border-top: 1px solid var(--border); }
+  .inv-payment-header { text-align: center; margin-bottom: 36px; }
+  .inv-payment-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--ink); margin-bottom: 8px; }
+  .inv-payment-sub { font-size: 13px; color: var(--ink-3); }
+
+  .inv-paid-box {
+    max-width: 460px; margin: 0 auto;
+    background: linear-gradient(135deg, rgba(16,185,123,.06), rgba(16,185,123,.02));
+    border: 1px solid rgba(16,185,123,.2);
+    border-radius: var(--r-xl);
+    padding: 48px 40px;
+    text-align: center;
+  }
+  .inv-paid-icon {
+    width: 72px; height: 72px;
+    background: rgba(16,185,123,.1);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px; color: var(--success);
+  }
+  .inv-paid-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--ink); margin-bottom: 8px; }
+  .inv-paid-sub   { font-size: 14px; color: var(--ink-3); margin-bottom: 28px; }
+
+  .inv-gateways {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    max-width: 540px; margin: 0 auto;
+  }
+  .inv-gateway-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px;
+    border-radius: var(--r-md);
+    cursor: pointer; border: none;
+    transition: all .22s; position: relative; overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .inv-gateway-stripe {
+    background: linear-gradient(135deg, #635BFF, #4F46E5);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(99,91,255,.3);
+  }
+  .inv-gateway-stripe:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99,91,255,.4); }
+  .inv-gateway-paypal {
+    background: linear-gradient(135deg, #003087, #0070E0);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0,112,224,.25);
+  }
+  .inv-gateway-paypal:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,112,224,.35); }
+  .inv-gateway-left { display: flex; align-items: center; gap: 12px; }
+  .inv-gateway-icon { width: 38px; height: 38px; background: rgba(255,255,255,.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+  .inv-gateway-method { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .6; margin-bottom: 2px; }
+  .inv-gateway-name   { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+  .inv-gateway-arrow  { opacity: .5; transition: all .2s; }
+  .inv-gateway-btn:hover .inv-gateway-arrow { opacity: 1; transform: translateX(3px); }
+
+  .inv-cards-row {
+    display: flex; align-items: center; justify-content: center; gap: 20px;
+    margin-top: 36px; padding-top: 36px;
+    border-top: 1px solid var(--border);
+    filter: grayscale(1); opacity: .3;
+  }
+  .inv-cards-row img { height: 20px; }
+
+  /* ── Footer ── */
+  .inv-footer {
+    background: var(--ink);
+    color: rgba(255,255,255,.55);
+    padding: 40px 52px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
+    border-top: 3px solid var(--accent);
+  }
+  .inv-footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .inv-footer-logo-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+  .inv-footer-logo-name { font-size: 14px; font-weight: 700; color: #fff; }
+  .inv-footer-desc { font-size: 12px; line-height: 1.7; color: rgba(255,255,255,.35); max-width: 180px; }
+  .inv-footer-heading { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.25); margin-bottom: 14px; }
+  .inv-footer-row { display: flex; align-items: center; gap: 9px; font-size: 12px; margin-bottom: 9px; color: rgba(255,255,255,.5); }
+  .inv-footer-icon { width: 26px; height: 26px; background: rgba(255,255,255,.06); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+  .inv-footer-addr { font-size: 12px; line-height: 1.8; }
+
+  /* ── Legal bar ── */
+  .inv-legal {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 20px;
+    padding: 24px; margin-top: 8px;
+    font-size: 11px; font-weight: 500; color: var(--ink-4);
+    letter-spacing: .04em;
+  }
+  .inv-legal-badge { display: flex; align-items: center; gap: 5px; }
+
+  /* ── Loading ── */
+  .inv-loading {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #F2F2F8;
+  }
+  .inv-spinner {
+    width: 44px; height: 44px;
+    border: 3px solid #E0E0EC;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Not found ── */
+  .inv-notfound {
+    min-height: 100vh; background: #F2F2F8;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .inv-notfound-card {
+    background: #fff; border-radius: var(--r-xl); padding: 64px 56px;
+    text-align: center; max-width: 440px;
+    box-shadow: var(--shadow-xl);
+  }
+  .inv-notfound-icon { width: 72px; height: 72px; background: rgba(239,68,68,.08); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: var(--danger); }
+  .inv-notfound-title { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--ink); margin-bottom: 12px; }
+  .inv-notfound-desc  { font-size: 14px; color: var(--ink-3); line-height: 1.7; margin-bottom: 32px; }
+
+  /* ── Print ── */
+  @media print {
+    .no-print { display: none !important; }
+    .inv-root { background: #fff; }
+    .inv-card { box-shadow: none; border-radius: 0; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .inv-header { padding: 32px 24px; grid-template-columns: 1fr; }
+    .inv-word-invoice { display: none; }
+    .inv-header-right { align-items: flex-start; }
+    .inv-meta { grid-template-columns: 1fr; }
+    .inv-meta-col { padding: 28px 24px; border-right: none !important; }
+    .inv-meta-col + .inv-meta-col { border-top: 1px solid var(--border); }
+    .inv-table th, .inv-table td { padding: 16px 24px; }
+    .inv-totals-band { grid-template-columns: 1fr; }
+    .inv-notes-col { padding: 28px 24px; border-right: none; border-bottom: 1px solid var(--border); }
+    .inv-totals-col { padding: 28px 24px; }
+    .inv-payment-section { padding: 32px 24px; }
+    .inv-footer { grid-template-columns: 1fr; padding: 32px 24px; gap: 24px; }
+    .inv-topbar { flex-direction: column; align-items: flex-start; }
+  }
+`;
+
+function InjectStyles() {
+  useEffect(() => {
+    if (!document.getElementById('inv-styles')) {
+      const el = document.createElement('style');
+      el.id = 'inv-styles';
+      el.textContent = STYLES;
+      document.head.appendChild(el);
+    }
+    return () => {};
+  }, []);
+  return null;
+}
+
 const ClientPaymentView = () => {
-    const { invoiceId } = useParams();
-    const navigate = useNavigate();
-    const { invoices, clients, brands, gateways, updateInvoiceStatus, addToast } = useCRM();
-    const [isStripeOpen, setIsStripeOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [invoice, setInvoice] = useState(null);
-    const [client, setClient] = useState(null);
-    const [pdfLoading, setPdfLoading] = useState(false);
+  const { invoiceId } = useParams();
+  const navigate = useNavigate();
+  const { invoices, clients, brands, gateways, updateInvoiceStatus, addToast } = useCRM();
+  const [isStripeOpen, setIsStripeOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [invoice, setInvoice] = useState(null);
+  const [client, setClient] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            let foundInvoice = invoices.find(inv =>
-                inv.id.toLowerCase() === invoiceId?.trim().toLowerCase()
-            );
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      let foundInvoice = invoices.find(inv =>
+        inv.id?.toString().toLowerCase() === invoiceId?.trim().toLowerCase() ||
+        inv.uuid?.toString().toLowerCase() === invoiceId?.trim().toLowerCase()
+      );
+      if (foundInvoice) {
+        setInvoice(foundInvoice);
+        setClient(clients.find(c => c.id === foundInvoice.client_id || c.id === foundInvoice.clientId));
+      }
+      setIsLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [invoiceId, invoices, clients]);
 
-            if (foundInvoice) {
-                setInvoice(foundInvoice);
-                let foundClient = clients.find(c => c.id === foundInvoice.client_id || c.id === foundInvoice.clientId);
-                setClient(foundClient);
-            }
-            setIsLoading(false);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [invoiceId, invoices, clients]);
+  const handlePaymentSuccess = (method) => {
+    updateInvoiceStatus(invoiceId, 'Paid', method);
+    addToast('Payment settled. Thank you for your partnership.', 'success');
+  };
 
-    const handlePaymentSuccess = (method) => {
-        updateInvoiceStatus(invoiceId, 'Paid', method);
-        addToast('Payment settled. Thank you for your partnership.', 'success');
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    const element = document.getElementById('ledger-invoice');
+    const opt = {
+      margin: 0,
+      filename: `Invoice-${invoice.id.toString().split('-')[0].toUpperCase()}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
+    try {
+      if (!window.html2pdf) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        document.head.appendChild(script);
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          setTimeout(() => reject(new Error('timeout')), 10000);
+        });
+      }
+      await new Promise(r => setTimeout(r, 500));
+      await window.html2pdf().set(opt).from(element).save();
+      addToast('Invoice exported successfully!', 'success');
+    } catch (err) {
+      addToast('PDF export failed. Try Chrome on desktop.', 'error');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
-    const handleDownloadPDF = async () => {
-        setPdfLoading(true);
-        const element = document.getElementById('ledger-invoice');
-        const opt = {
-            margin: 0,
-            filename: `Invoice-${invoice.id.split('-')[0].toUpperCase()}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                logging: false
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+  const brand = brands?.find(b => b.id === invoice?.brand_id || b.id === invoice?.brandId) || brands?.[0] || { name: 'Nexus', color: '#5B4FE9' };
 
-        try {
-            // Ensure html2pdf is loaded
-            if (!window.html2pdf) {
-                const script = document.createElement('script');
-                script.id = 'html2pdf-script';
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-                document.head.appendChild(script);
+  /* ─── Loading ─────────────────────────────────────────────────────────── */
+  if (isLoading) return (
+    <div className="inv-root">
+      <InjectStyles />
+      <div className="inv-loading">
+        <div className="inv-spinner" />
+      </div>
+    </div>
+  );
 
-                await new Promise((resolve, reject) => {
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    // Timeout after 10 seconds
-                    setTimeout(() => reject(new Error('html2pdf load timeout')), 10000);
-                });
-            }
-
-            // Give a tiny moment for browser to settle before capturing
-            await new Promise(r => setTimeout(r, 500));
-
-            const worker = window.html2pdf().set(opt).from(element);
-            await worker.save();
-            addToast('Invoice statement exported successfully!', 'success');
-        } catch (error) {
-            console.error('PDF Generation Error:', error);
-            addToast('Failed to generate PDF. Desktop/Chrome recommended for export.', 'error');
-        } finally {
-            setPdfLoading(false);
-        }
-    };
-
-    const brand = brands?.find(b => b.id === invoice?.brand_id || b.id === invoice?.brandId) || brands?.[0] || { name: 'Nexus', color: '#CA1D2A' };
-
-    if (isLoading) return (
-        <div className="min-h-screen ledger-page flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-red-600"></div>
+  /* ─── Not found ────────────────────────────────────────────────────────── */
+  if (!invoice) return (
+    <div className="inv-root">
+      <InjectStyles />
+      <div className="inv-notfound">
+        <div className="inv-notfound-card">
+          <div className="inv-notfound-icon"><AlertCircle size={32} /></div>
+          <h2 className="inv-notfound-title">Invoice Not Found</h2>
+          <p className="inv-notfound-desc">
+            This invoice could not be located. It may have been archived or the link may be incorrect.
+          </p>
+          <button className="inv-btn inv-btn-dark" style={{ width: '100%', justifyContent: 'center', padding: '14px' }} onClick={() => navigate('/')}>
+            Return Home
+          </button>
         </div>
-    );
+      </div>
+    </div>
+  );
 
-    if (!invoice) return (
-        <div className="min-h-screen ledger-page flex items-center justify-center p-6">
-            <div className="text-center p-12 bg-white rounded-3xl shadow-xl border-t-4 border-red-600 max-w-md">
-                <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-6" />
-                <h2 className="text-3xl font-black text-slate-900 mb-2">Record Not Found</h2>
-                <p className="text-slate-500 mb-8">The requested invoice could not be located in our system.</p>
-                <button onClick={() => navigate('/')} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">
-                    Return to Home
-                </button>
+  const isPaid = invoice.status === 'Paid';
+  const total  = invoice.total || invoice.amount;
+  const invNum = `#${invoice.id.toString().split('-')[0].toUpperCase()}`;
+  const acctId = `ACT-${invoice.id.toString().split('-')[1]?.toUpperCase() || '74632'}`;
+  const issueDate = new Date(invoice.issue_date || invoice.created_at || invoice.date).toLocaleDateString(undefined, { dateStyle: 'long' });
+  const dueDate   = new Date(invoice.due_date  || (new Date(invoice.created_at || invoice.date).getTime() + 7 * 24 * 60 * 60 * 1000)).toLocaleDateString(undefined, { dateStyle: 'long' });
+  const items = invoice.invoice_items || invoice.items || [];
+
+  return (
+    <div className="inv-root">
+      <InjectStyles />
+      <div className="inv-page">
+
+        {/* ── Top Bar ── */}
+        <div className="inv-topbar no-print">
+          <div className="inv-topbar-brand">
+            <div className="inv-topbar-logo" style={{ background: brand.color }}>
+              {brand.logo
+                ? <img src={brand.logo} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                : brand.name.charAt(0)
+              }
             </div>
+            <span className="inv-topbar-name">{brand.name}</span>
+          </div>
+          <div className="inv-topbar-actions">
+            <button className="inv-btn inv-btn-ghost" onClick={() => window.print()}>
+              <Printer size={14} /> Print
+            </button>
+            <button className="inv-btn inv-btn-ghost" onClick={handleDownloadPDF} disabled={pdfLoading}>
+              <Download size={14} style={{ animation: pdfLoading ? 'pulse-dot 1s infinite' : '' }} />
+              {pdfLoading ? 'Exporting…' : 'Download PDF'}
+            </button>
+          </div>
         </div>
-    );
 
-    return (
-        <div className="min-h-screen ledger-page py-12 px-4 md:py-20 flex flex-col items-center">
-            {/* Action Bar */}
-            <div className="w-full max-w-4xl flex justify-end gap-4 mb-8 no-print">
-                <button
-                    onClick={handleDownloadPDF}
-                    disabled={pdfLoading}
-                    className="flex items-center gap-2 px-6 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
-                >
-                    <Download className={`w-4 h-4 ${pdfLoading ? 'animate-bounce' : ''}`} />
-                    {pdfLoading ? 'Preparing PDF...' : 'Download PDF'}
+        {/* ── Invoice Card ── */}
+        <div className="inv-card" id="ledger-invoice">
+
+          {/* ── Header ── */}
+          <div className="inv-header">
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div className="inv-header-badge">
+                <span />{brand.name} · Official Invoice
+              </div>
+              <p className="inv-header-title">Issued To</p>
+              <div className="inv-header-company">{client?.name || 'Valued Partner'}</div>
+              <div className="inv-header-ids">
+                <div className="inv-header-id-chip">
+                  <span className="inv-header-id-label">Invoice No</span>
+                  <span className="inv-header-id-val">{invNum}</span>
+                </div>
+                <div className="inv-header-id-chip">
+                  <span className="inv-header-id-label">Account ID</span>
+                  <span className="inv-header-id-val">{acctId}</span>
+                </div>
+                <div className="inv-header-id-chip" style={{ borderRadius: '0 10px 10px 0', borderLeft: 'none' }}>
+                  <span className="inv-header-id-label">Status</span>
+                  <span className="inv-header-id-val">{invoice.status}</span>
+                </div>
+              </div>
+            </div>
+            <div className="inv-header-right">
+              <div className="inv-qr">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=FFFFFF&bgcolor=0D0D12`} alt="QR" />
+              </div>
+              <div className={`inv-status-pill ${isPaid ? 'paid' : 'unpaid'}`} style={{ color: isPaid ? '#10B97B' : '#EF4444' }}>
+                <span className="inv-status-dot" />
+                {isPaid ? 'Settled' : 'Awaiting Payment'}
+              </div>
+            </div>
+            <div className="inv-word-invoice">INVOICE</div>
+          </div>
+
+          {/* ── Meta info ── */}
+          <div className="inv-meta">
+            {/* Dates */}
+            <div className="inv-meta-col">
+              <p className="inv-label" style={{ marginBottom: 16 }}>Payment Details</p>
+              <div className="inv-meta-row">
+                <span className="inv-label" style={{ margin: 0 }}>Issue Date</span>
+                <span className="inv-value">{issueDate}</span>
+              </div>
+              <div className="inv-meta-row">
+                <span className="inv-label" style={{ margin: 0 }}>Due Date</span>
+                <span className="inv-value">{dueDate}</span>
+              </div>
+              <div className="inv-meta-row">
+                <span className="inv-label" style={{ margin: 0 }}>Currency</span>
+                <span className="inv-value">USD — US Dollar</span>
+              </div>
+              <div className="inv-meta-row" style={{ marginTop: 12 }}>
+                <span className="inv-label" style={{ margin: 0 }}>Payment Method</span>
+                <span className="inv-value">Secure Card / Wire</span>
+              </div>
+            </div>
+
+            {/* Client */}
+            <div className="inv-meta-col">
+              <p className="inv-label">Bill To</p>
+              <div className="inv-client-name">{client?.name || 'Valued Partner'}</div>
+              <div className="inv-client-sub">{client?.company || 'Organization Partner'}</div>
+              {client?.email && (
+                <div className="inv-contact-row">
+                  <span className="inv-contact-icon"><Mail size={12} /></span>
+                  {client.email}
+                </div>
+              )}
+              {client?.phone && (
+                <div className="inv-contact-row">
+                  <span className="inv-contact-icon"><Building2 size={12} /></span>
+                  {client.phone}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Items Table ── */}
+          <div className="inv-table-wrap">
+            <table className="inv-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th className="center">Rate</th>
+                  <th className="center">Qty</th>
+                  <th className="right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>
+                      <div className="inv-item-name">{item.description}</div>
+                      <div className="inv-item-sub">Professional Services</div>
+                    </td>
+                    <td className="center">
+                      <span className="inv-item-price">${Number(item.price).toLocaleString()}</span>
+                    </td>
+                    <td className="center">
+                      <span className="inv-item-qty">{item.quantity}</span>
+                    </td>
+                    <td className="right">
+                      <span className="inv-item-total">${(item.quantity * item.price).toLocaleString()}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Totals ── */}
+          <div className="inv-totals-band">
+            <div className="inv-notes-col">
+              <p className="inv-label" style={{ marginBottom: 14 }}>Notes</p>
+              <div className="inv-note-box">
+                {invoice.notes || `Thank you for choosing ${brand.name}. We are committed to excellence in every transaction and partnership we cultivate.`}
+                <div className="inv-note-author">— {brand.name} Team</div>
+              </div>
+            </div>
+            <div className="inv-totals-col">
+              <div className="inv-total-row">
+                <span className="inv-total-label">Subtotal</span>
+                <span className="inv-total-val">${Number(total).toLocaleString()}</span>
+              </div>
+              <div className="inv-total-row">
+                <span className="inv-total-label">Tax (VAT 0%)</span>
+                <span className="inv-total-val">$0.00</span>
+              </div>
+              <hr className="inv-divider" />
+              <div className="inv-grand-row">
+                <span className="inv-grand-label">Total Due</span>
+                <span className="inv-grand-val">${Number(total).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Payment Section ── */}
+          <div className="inv-payment-section no-print">
+            <div className="inv-payment-header">
+              <h3 className="inv-payment-title">Complete Your Payment</h3>
+              <p className="inv-payment-sub">Choose a secure payment method to settle this invoice instantly.</p>
+            </div>
+
+            {isPaid ? (
+              <div className="inv-paid-box">
+                <div className="inv-paid-icon"><CheckCircle2 size={34} /></div>
+                <div className="inv-paid-title">Payment Complete</div>
+                <p className="inv-paid-sub">This invoice has been settled and archived.</p>
+                <button className="inv-btn inv-btn-accent" onClick={handleDownloadPDF} style={{ margin: '0 auto' }}>
+                  <Download size={14} /> Download Receipt
                 </button>
-                <button
-                    onClick={() => window.print()}
-                    className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-all shadow-md"
-                >
-                    <BookOpen className="w-4 h-4" /> Print Statement
-                </button>
+              </div>
+            ) : (
+              <>
+                <div className="inv-gateways">
+                  {(gateways?.stripe1?.enabled && (!invoice.allowedGateways || invoice.allowedGateways?.stripe1)) && (
+                    <button className="inv-gateway-btn inv-gateway-stripe" onClick={() => setIsStripeOpen(true)}>
+                      <div className="inv-gateway-left">
+                        <div className="inv-gateway-icon"><CreditCard size={18} color="#fff" /></div>
+                        <div style={{ textAlign: 'left' }}>
+                          <div className="inv-gateway-method">Pay with Card</div>
+                          <div className="inv-gateway-name">Stripe Pay</div>
+                        </div>
+                      </div>
+                      <ArrowRight size={16} className="inv-gateway-arrow" />
+                    </button>
+                  )}
+                  {(gateways?.paypal?.enabled && (!invoice.allowedGateways || invoice.allowedGateways?.paypal)) && (
+                    <button className="inv-gateway-btn inv-gateway-paypal">
+                      <div className="inv-gateway-left">
+                        <div className="inv-gateway-icon">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" style={{ height: 14, filter: 'brightness(0) invert(1)' }} />
+                        </div>
+                        <div style={{ textAlign: 'left' }}>
+                          <div className="inv-gateway-method">Express Checkout</div>
+                          <div className="inv-gateway-name">PayPal</div>
+                        </div>
+                      </div>
+                      <ArrowRight size={16} className="inv-gateway-arrow" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="inv-cards-row">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── Footer ── */}
+          <footer className="inv-footer">
+            <div>
+              <div className="inv-footer-logo">
+                <div className="inv-footer-logo-icon" style={{ background: brand.color }}>
+                  {brand.logo
+                    ? <img src={brand.logo} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    : brand.name.charAt(0)
+                  }
+                </div>
+                <span className="inv-footer-logo-name">{brand.name}</span>
+              </div>
+              <p className="inv-footer-desc">Advanced Business Solutions for Modern Enterprises.</p>
             </div>
-
-            {/* The Invoice Document */}
-            <div
-                id="ledger-invoice"
-                className="w-full max-w-4xl ledger-card rounded-none overflow-hidden relative border-t-8 border-red-600 shadow-2xl transition-all duration-700 hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)]"
-            >
-                {/* Header Section */}
-                <div className="bg-slate-50 p-8 md:p-12 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 items-start gap-12">
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-4">
-                            <div
-                                className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-2xl font-black shadow-lg overflow-hidden shrink-0"
-                                style={{ backgroundColor: brand.color }}
-                            >
-                                {brand.logo ? <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" /> : brand.name.charAt(0)}
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{brand.name}</h1>
-                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Official Invoice</p>
-                            </div>
-                        </div>
-                        <div className="p-4 bg-white border border-slate-200 rounded-xl inline-flex gap-8 divide-x divide-slate-100">
-                            <div>
-                                <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Account ID</p>
-                                <p className="text-sm font-mono font-bold text-slate-900">ACT-{invoice.id.split('-')[1]?.toUpperCase() || '74632'}</p>
-                            </div>
-                            <div className="pl-8">
-                                <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Invoice No</p>
-                                <p className="text-sm font-mono font-bold text-slate-900">#{invoice.id.split('-')[0].toUpperCase()}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="md:text-right space-y-4 flex flex-col md:items-end">
-                        <div className="w-24 h-24 p-2 bg-white border border-slate-200 rounded-xl shadow-sm">
-                            <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${window.location.href}`}
-                                alt="Verification QR"
-                                className="w-full h-full"
-                            />
-                        </div>
-                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter">INVOICE</h2>
-                        <p className="text-sm text-slate-500 font-medium italic">Document Payment Information</p>
-                    </div>
-                </div>
-
-                {/* Sub-Header: Dates & Client Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-100">
-                    <div className="p-8 md:p-12 border-r border-slate-100 space-y-8 ledger-block-dark relative">
-                        {/* Decorative Strip */}
-                        <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
-
-                        <div className="space-y-4">
-                            <div className="flex justify-between border-b border-black/5 pb-2">
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Issue Date:</span>
-                                <span className="text-sm font-bold text-slate-900">{new Date(invoice.issue_date || invoice.created_at || invoice.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Due Date:</span>
-                                <span className="text-sm font-bold text-slate-900">{new Date(invoice.due_date || (new Date(invoice.created_at || invoice.date).getTime() + 7 * 24 * 60 * 60 * 1000)).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4 pt-4">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Bill To:</p>
-                            <div>
-                                <h3 className="text-2xl font-black tracking-tight text-slate-900">{client?.name || 'Valued Partner'}</h3>
-                                <p className="text-slate-600 font-medium">{client?.company || 'Organization Partner'}</p>
-                                <div className="mt-4 space-y-1 text-sm text-slate-700 font-medium">
-                                    <p className="flex items-center gap-2"><Mail className="w-3 h-3" /> {client?.email}</p>
-                                    <p className="flex items-center gap-2"><Building2 className="w-3 h-3" /> {client?.phone || '(555) 123-4567'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-8 md:p-12 flex flex-col justify-between">
-                        <div className="space-y-6">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Instructions:</p>
-                            <div className="flex items-start gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                                <div className="p-2 bg-white rounded-lg shadow-sm">
-                                    <Check className="w-5 h-5 text-blue-600" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Preferred Method</p>
-                                    <p className="text-sm text-slate-600 mt-1 leading-relaxed italic">
-                                        Please use the secure checkout portal below for instant settlement. Bank wire transfers are accepted via {brand.name} Direct Infrastructure.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-8 flex items-baseline justify-between border-t border-slate-100">
-                            <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full ${invoice.status === 'Paid' ? 'bg-emerald-500' : 'bg-red-600'} animate-pulse`} />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{invoice.status} Status</span>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-black uppercase text-slate-500">Settlement Currency</p>
-                                <p className="text-lg font-black text-slate-900">USD - US Dollar</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Table Section */}
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-slate-900 text-white text-xs font-black uppercase tracking-widest">
-                                <th className="py-6 px-8 text-left">Item Description</th>
-                                <th className="py-6 px-8 text-center">Rate</th>
-                                <th className="py-6 px-8 text-center">Unit</th>
-                                <th className="py-6 px-8 text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {(invoice.invoice_items || invoice.items)?.map((item, idx) => (
-                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                    <td className="py-8 px-8">
-                                        <p className="text-lg font-bold text-slate-900">{item.description}</p>
-                                        <p className="text-xs text-slate-500 font-medium">Professional Managed Services</p>
-                                    </td>
-                                    <td className="py-8 px-8 text-center font-mono font-bold text-slate-600">${item.price.toLocaleString()}</td>
-                                    <td className="py-8 px-8 text-center font-medium text-slate-500">{item.quantity} Qty</td>
-                                    <td className="py-8 px-8 text-right font-black text-slate-900 text-lg">${(item.quantity * item.price).toLocaleString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Calculation Section */}
-                <div className="flex flex-col md:flex-row justify-between p-8 md:p-12 bg-slate-50/50 border-t border-slate-100 gap-12">
-                    <div className="max-w-md space-y-6">
-                        <div className="p-6 bg-white border border-slate-200 rounded-[2rem] shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 -rotate-45 translate-x-12 -translate-y-12" />
-                            <div className="relative z-10">
-                                {invoice.notes ? (
-                                    <div className="text-sm text-slate-700 space-y-2 leading-relaxed font-serif italic whitespace-pre-wrap">
-                                        {invoice.notes}
-                                    </div>
-                                ) : (
-                                    <p className="text-xs text-slate-500 font-bold italic leading-relaxed">
-                                        "{brand.description || `Thank you for choosing ${brand.name}. We are committed to excellence in every transaction and partnership we cultivate.`}"
-                                    </p>
-                                )}
-                            </div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mt-4 relative z-10">— {brand.name} Executive Board</p>
-                        </div>
-                    </div>
-
-                    <div className="md:w-80 space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="font-bold text-slate-600 uppercase tracking-widest">Gross Subtotal:</span>
-                            <span className="font-bold text-slate-900 text-base">${(invoice.total || invoice.amount).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-4">
-                            <span className="font-bold text-slate-600 uppercase tracking-widest">Tax (VAT 0%):</span>
-                            <span className="font-bold text-slate-900 text-base">$0.00</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2">
-                            <span className="text-sm font-black text-red-600 uppercase tracking-[0.2em]">Total Due:</span>
-                            <div className="text-right">
-                                <p className="text-4xl font-black text-slate-900 tracking-tighter leading-none">${(invoice.total || invoice.amount).toLocaleString()}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Payment Portal Section - NO PRINT */}
-                <div className="p-12 bg-white border-t-2 border-slate-100 no-print">
-                    <div className="max-w-2xl mx-auto space-y-10">
-                        <div className="text-center">
-                            <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Secure Settlement Vault</h3>
-                            <p className="text-slate-500 text-sm font-medium">Select your preferred transaction bridge to complete the payment.</p>
-                        </div>
-
-                        {invoice.status === 'Paid' ? (
-                            <div className="p-8 bg-emerald-50 border border-emerald-100 rounded-3xl flex flex-col items-center gap-6 text-center animate-reveal">
-                                <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg">
-                                    <CheckCircle2 className="w-10 h-10" />
-                                </div>
-                                <div>
-                                    <h4 className="text-2xl font-black text-emerald-900">Transaction Finalized</h4>
-                                    <p className="text-emerald-600 font-medium">This document has been fully settled and archived.</p>
-                                </div>
-                                <button
-                                    onClick={handleDownloadPDF}
-                                    className="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-700 transition-all shadow-xl"
-                                >
-                                    Retrieve PDF Receipt
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-reveal">
-                                {/* Stripe 1 */}
-                                {(gateways.stripe1.enabled && (!invoice.allowedGateways || invoice.allowedGateways.stripe1)) && (
-                                    <button
-                                        onClick={() => setIsStripeOpen(true)}
-                                        className="btn-payment-stripe group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="bg-white/10 p-2 rounded-lg">
-                                                <CreditCard className="w-5 h-5" />
-                                            </div>
-                                            <div className="text-left leading-none">
-                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Pay with Card</p>
-                                                <p className="text-lg font-black tracking-tighter uppercase">Stripe Pay</p>
-                                            </div>
-                                        </div>
-                                        <ArrowRight className="w-5 h-5 opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                    </button>
-                                )}
-
-                                {/* PayPal */}
-                                {(gateways.paypal.enabled && (!invoice.allowedGateways || invoice.allowedGateways.paypal)) && (
-                                    <button className="btn-payment-paypal group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="bg-white/10 p-2 rounded-lg">
-                                                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-4 brightness-0 invert" />
-                                            </div>
-                                            <div className="text-left leading-none">
-                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">ExpressCheckout</p>
-                                                <p className="text-lg font-black tracking-tighter uppercase">PayPal</p>
-                                            </div>
-                                        </div>
-                                        <ArrowRight className="w-5 h-5 opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-center gap-8 py-8 border-t border-slate-50 grayscale opacity-40">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" className="h-5" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer Section */}
-                <footer className="p-12 bg-[#0A0A0B] border-t-8 border-blue-600 text-white grid grid-cols-1 md:grid-cols-3 gap-12">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center font-black">
-                                {brand.name.charAt(0)}
-                            </div>
-                            <span className="font-black uppercase tracking-tight text-white">{brand.name}</span>
-                        </div>
-                        <p className="text-xs text-white/60 leading-relaxed max-w-[200px]">
-                            Advanced Business Solutions and Strategic Infrastructure for Modern Enterprises.
-                        </p>
-                    </div>
-
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Global Contact</p>
-                        <ul className="text-xs space-y-2 text-white/80 font-medium">
-                            <li className="flex items-center gap-2"><Mail className="w-3 h-3 text-red-500" /> support@{brand.name.toLowerCase()}.com</li>
-                            <li className="flex items-center gap-2"><Calendar className="w-3 h-3 text-red-500" /> Mon - Fri / 09:00 - 18:00</li>
-                        </ul>
-                    </div>
-
-                    <div className="md:text-right space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Headquarters</p>
-                        <p className="text-xs text-white/80 font-medium leading-relaxed">
-                            1234 Business Avenue,<br />
-                            Suite 500, Innovation District,<br />
-                            Corporate Tower, United States
-                        </p>
-                    </div>
-                </footer>
+            <div>
+              <p className="inv-footer-heading">Contact</p>
+              <div className="inv-footer-row">
+                <span className="inv-footer-icon"><Mail size={11} /></span>
+                support@{brand.name.toLowerCase()}.com
+              </div>
+              <div className="inv-footer-row">
+                <span className="inv-footer-icon"><Calendar size={11} /></span>
+                Mon–Fri · 9:00–18:00
+              </div>
             </div>
-
-            {/* Legal Credits */}
-            <div className="mt-12 text-center text-slate-400 font-medium text-[10px] uppercase tracking-widest space-y-2">
-                <p>&copy; {new Date().getFullYear()} {brand.name} Group · All Rights Reserved</p>
-                <div className="flex items-center justify-center gap-4 opacity-50">
-                    <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> PCI Certified</span>
-                    <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> SSL Encrypted</span>
-                    <span className="flex items-center gap-1"><BadgeCheck className="w-3 h-3" /> Fraud Protected</span>
-                </div>
+            <div style={{ textAlign: 'right' }}>
+              <p className="inv-footer-heading">Headquarters</p>
+              <p className="inv-footer-addr">
+                1234 Business Avenue<br />
+                Suite 500, Innovation District<br />
+                Corporate Tower, United States
+              </p>
             </div>
-
-            <StripeModal
-                isOpen={isStripeOpen}
-                onClose={() => setIsStripeOpen(false)}
-                onPaymentSuccess={handlePaymentSuccess}
-                amount={invoice.total || invoice.amount}
-                invoiceId={invoice.id}
-            />
+          </footer>
         </div>
-    );
+
+        {/* ── Legal Bar ── */}
+        <div className="inv-legal">
+          <span>&copy; {new Date().getFullYear()} {brand.name} · All Rights Reserved</span>
+          <span className="inv-legal-badge"><ShieldCheck size={12} /> PCI Certified</span>
+          <span className="inv-legal-badge"><Lock size={12} /> SSL Encrypted</span>
+          <span className="inv-legal-badge"><BadgeCheck size={12} /> Fraud Protected</span>
+        </div>
+      </div>
+
+      <StripeModal
+        isOpen={isStripeOpen}
+        onClose={() => setIsStripeOpen(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        amount={total}
+        invoiceId={invoice.id}
+      />
+    </div>
+  );
 };
 
 export default ClientPaymentView;

@@ -97,44 +97,76 @@ const Dashboard = () => {
                 </Card>
             </div>
 
-            {/* Recent Invoices Table */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Recent Invoices</CardTitle>
-                    <button className="text-primary text-sm font-semibold hover:underline">View All</button>
-                </CardHeader>
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Invoice #</TableHead>
-                                <TableHead>Client</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {recentInvoices.map((inv) => (
-                                <TableRow key={inv.id}>
-                                    <TableCell className="font-semibold text-secondary">{inv.id.split('-')[0]}</TableCell>
-                                    <TableCell>{inv.clients?.name || 'Unknown Client'}</TableCell>
-                                    <TableCell>${Number(inv.total || 0).toLocaleString()}</TableCell>
-                                    <TableCell className="text-gray-500">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={
-                                            inv.status === 'Paid' ? 'success' :
-                                                inv.status === 'Pending' ? 'warning' : 'danger'
-                                        }>
-                                            {inv.status}
-                                        </Badge>
-                                    </TableCell>
+            {/* Recent Invoices & Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Recent Invoices Table */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Recent Invoices</CardTitle>
+                        <button className="text-primary text-sm font-semibold hover:underline">View All</button>
+                    </CardHeader>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Invoice #</TableHead>
+                                    <TableHead>Client</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Status</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {recentInvoices.map((inv) => (
+                                    <TableRow key={inv.id}>
+                                        <TableCell className="font-semibold text-secondary">{inv.id.toString().split('-')[0]}</TableCell>
+                                        <TableCell>{inv.clients?.name || 'Unknown Client'}</TableCell>
+                                        <TableCell>${Number(inv.total || 0).toLocaleString()}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={
+                                                inv.status === 'Paid' ? 'success' :
+                                                    inv.status === 'Pending' ? 'warning' : 'danger'
+                                            }>
+                                                {inv.status}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </Card>
+
+                {/* Recent Activity Feed */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Recent Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {useCRM().activities.slice(0, 6).map((activity) => (
+                            <div key={activity.id} className="flex gap-4 items-start">
+                                <div className={`p-2 rounded-lg ${activity.type === 'payment' ? 'bg-emerald-50 text-emerald-600' :
+                                        activity.type === 'invoice' ? 'bg-blue-50 text-blue-600' :
+                                            'bg-gray-50 text-gray-600'
+                                    }`}>
+                                    {activity.type === 'payment' ? <DollarSign className="w-4 h-4" /> :
+                                        activity.type === 'invoice' ? <FileCheck className="w-4 h-4" /> :
+                                            <AlertCircle className="w-4 h-4" />}
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-gray-900">{activity.title}</p>
+                                    <p className="text-xs text-gray-500">{activity.description}</p>
+                                    <p className="text-[10px] text-gray-400 uppercase font-black">{new Date(activity.created_at).toLocaleTimeString()}</p>
+                                </div>
+                            </div>
+                        ))}
+                        {useCRM().activities.length === 0 && (
+                            <div className="text-center py-8">
+                                <p className="text-sm text-gray-400 italic">No recent activities recorded.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 };
