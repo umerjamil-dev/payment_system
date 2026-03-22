@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../UI/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../UI/Card';
+import { useCRM } from '../../Context/CRMContext';
 
 export const ClientModal = ({ isOpen, onClose, onSave, client }) => {
+    const { brands } = useCRM();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -71,13 +73,19 @@ export const ClientModal = ({ isOpen, onClose, onSave, client }) => {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Company</label>
-                            <input
-                                type="text"
+                            <label className="text-sm font-medium text-gray-700">Brand</label>
+                            <select
                                 className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                                 value={formData.company}
                                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                            />
+                            >
+                                <option value="">Select Brand</option>
+                                {brands.map((brand) => (
+                                    <option key={brand.id} value={brand.name}>
+                                        {brand.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Address</label>

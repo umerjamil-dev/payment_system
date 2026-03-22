@@ -207,13 +207,13 @@ export const CRMProvider = ({ children }) => {
                 if (client) {
                     const newActivity = {
                         type: 'payment',
-                        title: `Payment Received - ${invoiceId}`,
+                        title: `Payment Received - ${(1010 + Number(invoiceId))}`,
                         description: `Client ${client.name} paid ${invoice.total || invoice.amount} via ${paymentMethod || 'Manual'}`,
                         status: 'success'
                     };
                     addActivity(newActivity);
                 }
-                addToast(`Invoice ${invoiceId} marked as Paid!`, 'success');
+                addToast(`Invoice ${(1010 + Number(invoiceId))} marked as Paid!`, 'success');
             } else {
                 addToast(`Invoice status updated to ${status}`);
             }

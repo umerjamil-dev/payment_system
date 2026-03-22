@@ -108,7 +108,7 @@ const InvoiceList = () => {
                         <TableBody>
                             {filteredInvoices.map((inv) => (
                                 <TableRow key={inv.id}>
-                                    <TableCell className="font-semibold text-secondary">{inv.id.toString().split('-')[0]}</TableCell>
+                                    <TableCell className="font-semibold text-secondary">{(1010 + Number(inv.id))}</TableCell>
                                     <TableCell>{inv.clients?.name || 'Unknown Client'}</TableCell>
                                     <TableCell className="text-gray-500">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell className="font-medium">${Number(inv.total || 0).toLocaleString()}</TableCell>

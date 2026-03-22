@@ -13,20 +13,33 @@ const CreateInvoice = () => {
     const [selectedClientId, setSelectedClientId] = useState('');
     const [selectedBrandId, setSelectedBrandId] = useState('');
     const [items, setItems] = useState([{ id: 1, description: '', quantity: 1, price: 0 }]);
-    const [allowedGateways, setAllowedGateways] = useState({ stripe1: true, stripe2: true, paypal: true });
+    const [allowedGateways, setAllowedGateways] = useState({ stripe1: false, stripe2: false, paypal: false });
     const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
     const [notes, setNotes] = useState('');
     const [isSending, setIsSending] = useState(false);
 
     useEffect(() => {
-        if (brands.length > 0 && !selectedBrandId) {
-            setSelectedBrandId(brands[0].id);
-        }
         if (clients.length > 0 && !selectedClientId) {
             setSelectedClientId(clients[0].id);
         }
-    }, [brands, clients]);
+    }, [clients, selectedClientId]);
+
+    useEffect(() => {
+        if (selectedClientId) {
+            const client = clients.find(c => String(c.id) === String(selectedClientId));
+            if (client && client.company) {
+                const brand = brands.find(b => b.name === client.company);
+                if (brand) {
+                    setSelectedBrandId(brand.id);
+                } else {
+                    setSelectedBrandId('');
+                }
+            } else {
+                setSelectedBrandId('');
+            }
+        }
+    }, [selectedClientId, clients, brands]);
 
     const selectedClient = clients.find(c => String(c.id) === String(selectedClientId));
 
@@ -47,7 +60,7 @@ const CreateInvoice = () => {
     };
 
     const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-    const tax = subtotal * 0.1;
+    const tax = subtotal * 0; // 0% tax by default
     const total = subtotal + tax;
 
     const handleSend = async () => {
@@ -104,7 +117,7 @@ const CreateInvoice = () => {
                     to_email: client.email,
                     email: client.email, // Redundant for dashboard compatibility
                     to_name: client.name,
-                    invoice_id: newInvoice.id,
+                    invoice_id: (1010 + Number(newInvoice.id)),
                     total_amount: `$${total.toFixed(2)}`,
                     payment_link: paymentLink,
                     reply_to: 'admin@nexus.com'
@@ -189,6 +202,7 @@ const CreateInvoice = () => {
                                         onChange={(e) => setSelectedBrandId(e.target.value)}
                                         className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all cursor-pointer appearance-none"
                                     >
+                                        <option value="">Select Brand</option>
                                         {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
 
@@ -432,7 +446,7 @@ const CreateInvoice = () => {
                                     <span className="text-base font-bold text-slate-900">${subtotal.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Service Tax (10%)</span>
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Service Tax (0%)</span>
                                     <span className="text-base font-bold text-slate-900">${tax.toLocaleString()}</span>
                                 </div>
                                 <div className="pt-8 border-t border-slate-100">

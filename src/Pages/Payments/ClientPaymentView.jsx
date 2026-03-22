@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCRM } from '../../Context/CRMContext';
+import toast from 'react-hot-toast';
 import { StripeModal } from '../../Components/Payments/StripeModal';
+import { PayPalModal } from '../../Components/Payments/PayPalModal';
 import {
     Download, CheckCircle2, AlertCircle,
     ShieldCheck, Mail, Building2, Calendar,
@@ -196,10 +198,9 @@ const STYLES = `
   .inv-qr img { width: 100%; height: 100%; display: block; }
   .inv-word-invoice {
     font-family: 'DM Serif Display', serif;
-    font-size: 64px; line-height: .85; color: rgba(255,255,255,.08);
-    letter-spacing: -.04em; text-align: right;
+    font-size: 52px; line-height: 1;
+    letter-spacing: -.02em; text-align: right;
     user-select: none;
-    position: absolute; bottom: 32px; right: 52px;
   }
 
   /* ── Status pill ── */
@@ -439,7 +440,6 @@ const STYLES = `
   /* ── Responsive ── */
   @media (max-width: 640px) {
     .inv-header { padding: 32px 24px; grid-template-columns: 1fr; }
-    .inv-word-invoice { display: none; }
     .inv-header-right { align-items: flex-start; }
     .inv-meta { grid-template-columns: 1fr; }
     .inv-meta-col { padding: 28px 24px; border-right: none !important; }
@@ -470,8 +470,9 @@ function InjectStyles() {
 const ClientPaymentView = () => {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
-  const { invoices, clients, brands, gateways, updateInvoiceStatus, addToast } = useCRM();
+  const { invoices, clients, brands, gateways, updateInvoiceStatus } = useCRM();
   const [isStripeOpen, setIsStripeOpen] = useState(false);
+  const [isPayPalOpen, setIsPayPalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState(null);
   const [client, setClient] = useState(null);
@@ -494,7 +495,7 @@ const ClientPaymentView = () => {
 
   const handlePaymentSuccess = (method) => {
     updateInvoiceStatus(invoiceId, 'Paid', method);
-    addToast('Payment settled. Thank you for your partnership.', 'success');
+    toast.success('Payment settled. Thank you for your partnership.');
   };
 
   const handleDownloadPDF = async () => {
@@ -502,7 +503,7 @@ const ClientPaymentView = () => {
     const element = document.getElementById('ledger-invoice');
     const opt = {
       margin: 0,
-      filename: `Invoice-${invoice.id.toString().split('-')[0].toUpperCase()}.pdf`,
+      filename: `Invoice-${(1010 + Number(invoice.id))}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -520,9 +521,12 @@ const ClientPaymentView = () => {
       }
       await new Promise(r => setTimeout(r, 500));
       await window.html2pdf().set(opt).from(element).save();
-      addToast('Invoice exported successfully!', 'success');
+      toast.success('Invoice exported successfully!');
     } catch (err) {
-      addToast('PDF export failed. Try Chrome on desktop.', 'error');
+      console.error('PDF Export Error:', err);
+      // html2canvas fails on oklch colors. Fallback to native print.
+      toast.error('Direct PDF export failed. Opening print dialog instead.');
+      setTimeout(() => window.print(), 1000);
     } finally {
       setPdfLoading(false);
     }
@@ -551,9 +555,9 @@ const ClientPaymentView = () => {
           <p className="inv-notfound-desc">
             This invoice could not be located. It may have been archived or the link may be incorrect.
           </p>
-          <button className="inv-btn inv-btn-dark" style={{ width: '100%', justifyContent: 'center', padding: '14px' }} onClick={() => navigate('/')}>
+          {/* <button className="inv-btn inv-btn-dark" style={{ width: '100%', justifyContent: 'center', padding: '14px' }} onClick={() => navigate('/')}>
             Return Home
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
@@ -561,7 +565,7 @@ const ClientPaymentView = () => {
 
   const isPaid = invoice.status === 'Paid';
   const total  = invoice.total || invoice.amount;
-  const invNum = `#${invoice.id.toString().split('-')[0].toUpperCase()}`;
+  const invNum = `#${(1010 + Number(invoice.id))}`;
   const acctId = `ACT-${invoice.id.toString().split('-')[1]?.toUpperCase() || '74632'}`;
   const issueDate = new Date(invoice.issue_date || invoice.created_at || invoice.date).toLocaleDateString(undefined, { dateStyle: 'long' });
   const dueDate   = new Date(invoice.due_date  || (new Date(invoice.created_at || invoice.date).getTime() + 7 * 24 * 60 * 60 * 1000)).toLocaleDateString(undefined, { dateStyle: 'long' });
@@ -587,10 +591,7 @@ const ClientPaymentView = () => {
             <button className="inv-btn inv-btn-ghost" onClick={() => window.print()}>
               <Printer size={14} /> Print
             </button>
-            <button className="inv-btn inv-btn-ghost" onClick={handleDownloadPDF} disabled={pdfLoading}>
-              <Download size={14} style={{ animation: pdfLoading ? 'pulse-dot 1s infinite' : '' }} />
-              {pdfLoading ? 'Exporting…' : 'Download PDF'}
-            </button>
+           
           </div>
         </div>
 
@@ -601,14 +602,14 @@ const ClientPaymentView = () => {
           <div className="inv-header">
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div className="inv-header-badge">
-                <span />{brand.name} · Official Invoice
+                <span />{brand.name} invoice
               </div>
               <p className="inv-header-title">Issued To</p>
               <div className="inv-header-company">{client?.name || 'Valued Partner'}</div>
               <div className="inv-header-ids">
                 <div className="inv-header-id-chip">
                   <span className="inv-header-id-label">Invoice No</span>
-                  <span className="inv-header-id-val">{invNum}</span>
+                  <span className="inv-header-id-val">{invNum.substring(1)}</span>
                 </div>
                 <div className="inv-header-id-chip">
                   <span className="inv-header-id-label">Account ID</span>
@@ -621,15 +622,13 @@ const ClientPaymentView = () => {
               </div>
             </div>
             <div className="inv-header-right">
-              <div className="inv-qr">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=FFFFFF&bgcolor=0D0D12`} alt="QR" />
-              </div>
+              <div className="inv-word-invoice text-white">INVOICE</div>
               <div className={`inv-status-pill ${isPaid ? 'paid' : 'unpaid'}`} style={{ color: isPaid ? '#10B97B' : '#EF4444' }}>
                 <span className="inv-status-dot" />
                 {isPaid ? 'Settled' : 'Awaiting Payment'}
               </div>
             </div>
-            <div className="inv-word-invoice">INVOICE</div>
+            
           </div>
 
           {/* ── Meta info ── */}
@@ -651,7 +650,7 @@ const ClientPaymentView = () => {
               </div>
               <div className="inv-meta-row" style={{ marginTop: 12 }}>
                 <span className="inv-label" style={{ margin: 0 }}>Payment Method</span>
-                <span className="inv-value">Secure Card / Wire</span>
+                <span className="inv-value">{invoice.paymentMethod || invoice.payment_method || 'Credit Card / PayPal'}</span>
               </div>
             </div>
 
@@ -766,7 +765,7 @@ const ClientPaymentView = () => {
                     </button>
                   )}
                   {(gateways?.paypal?.enabled && (!invoice.allowedGateways || invoice.allowedGateways?.paypal)) && (
-                    <button className="inv-gateway-btn inv-gateway-paypal">
+                    <button className="inv-gateway-btn inv-gateway-paypal" onClick={() => setIsPayPalOpen(true)}>
                       <div className="inv-gateway-left">
                         <div className="inv-gateway-icon">
                           <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" style={{ height: 14, filter: 'brightness(0) invert(1)' }} />
@@ -838,6 +837,14 @@ const ClientPaymentView = () => {
       <StripeModal
         isOpen={isStripeOpen}
         onClose={() => setIsStripeOpen(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        amount={total}
+        invoiceId={invoice.id}
+      />
+      
+      <PayPalModal
+        isOpen={isPayPalOpen}
+        onClose={() => setIsPayPalOpen(false)}
         onPaymentSuccess={handlePaymentSuccess}
         amount={total}
         invoiceId={invoice.id}
