@@ -34,9 +34,14 @@ export const CRMProvider = ({ children }) => {
             if (configsRes.error) throw configsRes.error;
             if (activitiesRes.error) throw activitiesRes.error;
 
+            const mappedInvoices = (invoicesRes.data || []).map(inv => ({
+                ...inv,
+                paymentMethod: inv.payment_method || inv.paymentMethod || null
+            }));
+
             setClients(clientsRes.data || []);
             setBrands(brandsRes.data || []);
-            setInvoices(invoicesRes.data || []);
+            setInvoices(mappedInvoices);
             setActivities(activitiesRes.data || []);
 
             const gatewayConfig = configsRes.data?.find(c => c.key === 'gateways');
@@ -149,6 +154,7 @@ export const CRMProvider = ({ children }) => {
             issue_date: invoice.issue_date,
             due_date: invoice.due_date,
             notes: invoice.notes,
+            allowedGateways: allowedGateways, // Include the selected gateways
             status: 'Pending'
         };
 
@@ -191,7 +197,7 @@ export const CRMProvider = ({ children }) => {
         // Persist to Backend
         const updateData = {
             status,
-            payment_method: paymentMethod
+            payment_method: paymentMethod || null
         };
         if (status === 'Paid') updateData.paid_at = new Date().toISOString();
 
