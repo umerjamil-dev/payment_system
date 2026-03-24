@@ -5,10 +5,10 @@ import toast from 'react-hot-toast';
 import { StripeModal } from '../../Components/Payments/StripeModal';
 import { PayPalModal } from '../../Components/Payments/PayPalModal';
 import {
-    Download, CheckCircle2, AlertCircle,
-    ShieldCheck, Mail, Building2, Calendar,
-    CreditCard, Lock, ArrowRight,
-    BadgeCheck, Printer, Sparkles, Check
+  Download, CheckCircle2, AlertCircle,
+  ShieldCheck, Mail, Building2, Calendar,
+  CreditCard, Lock, ArrowRight,
+  BadgeCheck, Printer, Sparkles, Check
 } from 'lucide-react';
 
 /* ─── Inject styles once ─────────────────────────────────────────────────── */
@@ -462,7 +462,7 @@ function InjectStyles() {
       el.textContent = STYLES;
       document.head.appendChild(el);
     }
-    return () => {};
+    return () => { };
   }, []);
   return null;
 }
@@ -493,8 +493,8 @@ const ClientPaymentView = () => {
     return () => clearTimeout(timer);
   }, [invoiceId, invoices, clients]);
 
-  const handlePaymentSuccess = (method) => {
-    updateInvoiceStatus(invoiceId, 'Paid', method);
+  const handlePaymentSuccess = (methodName) => {
+    updateInvoiceStatus(invoiceId, 'Paid', methodName);
     toast.success('Payment settled. Thank you for your partnership.');
   };
 
@@ -564,12 +564,33 @@ const ClientPaymentView = () => {
   );
 
   const isPaid = invoice.status === 'Paid';
-  const total  = invoice.total || invoice.amount;
+  const total = invoice.total || invoice.amount;
   const invNum = `#${(1010 + Number(invoice.id))}`;
   const acctId = `ACT-${invoice.id.toString().split('-')[1]?.toUpperCase() || '74632'}`;
   const issueDate = new Date(invoice.issue_date || invoice.created_at || invoice.date).toLocaleDateString(undefined, { dateStyle: 'long' });
-  const dueDate   = new Date(invoice.due_date  || (new Date(invoice.created_at || invoice.date).getTime() + 7 * 24 * 60 * 60 * 1000)).toLocaleDateString(undefined, { dateStyle: 'long' });
+  const dueDate = new Date(invoice.due_date || (new Date(invoice.created_at || invoice.date).getTime() + 7 * 24 * 60 * 60 * 1000)).toLocaleDateString(undefined, { dateStyle: 'long' });
   const items = invoice.invoice_items || invoice.items || [];
+
+  let parsedGateways = null;
+  if (invoice?.allowedGateways) {
+    try {
+      parsedGateways = typeof invoice.allowedGateways === 'string' ? JSON.parse(invoice.allowedGateways) : invoice.allowedGateways;
+    } catch (e) {
+      console.warn('Could not parse allowedGateways', e);
+    }
+  }
+
+  const isStripeActive = gateways?.stripe1?.enabled && (!parsedGateways || parsedGateways?.stripe1 || parsedGateways?.stripe2);
+  const isPayPalActive = gateways?.paypal?.enabled && (!parsedGateways || parsedGateways?.paypal);
+
+  let paymentMethodDisplay = 'Bank Transfer / Manual';
+  if (isStripeActive && isPayPalActive) paymentMethodDisplay = 'Credit Card / PayPal';
+  else if (isStripeActive) paymentMethodDisplay = 'Credit Card (Stripe)';
+  else if (isPayPalActive) paymentMethodDisplay = 'PayPal';
+
+  const finalPaymentMethod = isPaid 
+    ? (invoice.paymentMethod || invoice.payment_method || invoice.payment_mode || 'Card / Online') 
+    : paymentMethodDisplay;
 
   return (
     <div className="inv-root">
@@ -591,7 +612,7 @@ const ClientPaymentView = () => {
             <button className="inv-btn inv-btn-ghost" onClick={() => window.print()}>
               <Printer size={14} /> Print
             </button>
-           
+
           </div>
         </div>
 
@@ -628,7 +649,7 @@ const ClientPaymentView = () => {
                 {isPaid ? 'Settled' : 'Awaiting Payment'}
               </div>
             </div>
-            
+
           </div>
 
           {/* ── Meta info ── */}
@@ -650,7 +671,7 @@ const ClientPaymentView = () => {
               </div>
               <div className="inv-meta-row" style={{ marginTop: 12 }}>
                 <span className="inv-label" style={{ margin: 0 }}>Payment Method</span>
-                <span className="inv-value">{invoice.paymentMethod || invoice.payment_method || 'Credit Card / PayPal'}</span>
+                <span className="inv-value">{finalPaymentMethod}</span>
               </div>
             </div>
 
@@ -752,7 +773,7 @@ const ClientPaymentView = () => {
             ) : (
               <>
                 <div className="inv-gateways">
-                  {(gateways?.stripe1?.enabled && (!invoice.allowedGateways || invoice.allowedGateways?.stripe1)) && (
+                  {isStripeActive && (
                     <button className="inv-gateway-btn inv-gateway-stripe" onClick={() => setIsStripeOpen(true)}>
                       <div className="inv-gateway-left">
                         <div className="inv-gateway-icon"><CreditCard size={18} color="#fff" /></div>
@@ -764,7 +785,7 @@ const ClientPaymentView = () => {
                       <ArrowRight size={16} className="inv-gateway-arrow" />
                     </button>
                   )}
-                  {(gateways?.paypal?.enabled && (!invoice.allowedGateways || invoice.allowedGateways?.paypal)) && (
+                  {isPayPalActive && (
                     <button className="inv-gateway-btn inv-gateway-paypal" onClick={() => setIsPayPalOpen(true)}>
                       <div className="inv-gateway-left">
                         <div className="inv-gateway-icon">
@@ -837,15 +858,15 @@ const ClientPaymentView = () => {
       <StripeModal
         isOpen={isStripeOpen}
         onClose={() => setIsStripeOpen(false)}
-        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentSuccess={() => handlePaymentSuccess('Stripe')}
         amount={total}
         invoiceId={invoice.id}
       />
-      
+
       <PayPalModal
         isOpen={isPayPalOpen}
         onClose={() => setIsPayPalOpen(false)}
-        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentSuccess={() => handlePaymentSuccess('PayPal')}
         amount={total}
         invoiceId={invoice.id}
       />

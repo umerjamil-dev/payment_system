@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Download, CheckCircle, Copy } from 'lucide-react';
+import { Plus, Search, Filter, Download, CheckCircle, Copy, CheckCircle2 } from 'lucide-react';
 
 import { Card, CardHeader, CardContent } from '../../Components/UI/Card';
 import { Button } from '../../Components/UI/Button';
@@ -137,9 +137,9 @@ const InvoiceList = () => {
                                                     >
                                                         <Copy className="w-8 h-8" />
                                                     </Button>
-                                                    <Button onClick={() => updateInvoiceStatus(inv.id, 'Paid')} variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50 gap-1 h-8">
-                                                        <CheckCircle className="w-4 h-4" />
-                                                        Mark Paid
+                                                    <Button onClick={() => updateInvoiceStatus(inv.id, 'Paid', 'Manual')} variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50 gap-1 h-8">
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Mark as Paid
                                                     </Button>
                                                 </>
                                             )}

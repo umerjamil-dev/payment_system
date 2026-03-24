@@ -102,7 +102,7 @@ const CreateInvoice = () => {
 
             try {
                 // EmailJS Logic
-                const SERVICE_ID = 'service_x90d9ll';
+                const SERVICE_ID = 'service_a53sst5';
                 const TEMPLATE_ID = 'template_03sxvjx';
                 const PUBLIC_KEY = 'i3Lg3lkiEAl2lyw1J';
 
